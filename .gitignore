@@ -12,7 +12,7 @@ api/uploads/
 api/backups/
 api/coverage/
 api/tmp/
-bi/lightdash/node_modules/
+bi/lightdash/
 bi/redash-demo/
 bi/postgres-data/
 .tokensave/

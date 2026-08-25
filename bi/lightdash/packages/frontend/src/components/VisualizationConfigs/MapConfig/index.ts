@@ -1,1 +1,0 @@
-export { ConfigTabs } from './MapConfigTabs';

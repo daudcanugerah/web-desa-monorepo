@@ -1,1 +1,0 @@
-export { sessionAccountMiddleware } from './sessionAccountMiddleware';
