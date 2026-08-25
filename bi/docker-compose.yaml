@@ -1,0 +1,73 @@
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: metabase_proxy
+    ports:
+      - "8085:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      metabase:
+        condition: service_started
+    networks:
+      - app_network
+
+  postgres:
+    image: postgres:15
+    container_name: metabase_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: metabase
+      POSTGRES_PASSWORD: metabase
+      POSTGRES_DB: metabase
+    volumes:
+      - postgres_data_x:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U metabase"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  metabase:
+    image: metabase/metabase:latest
+    container_name: metabase_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      MB_DB_TYPE: postgres
+      JAVA_TOOL_OPTIONS: "JAVA_OPTS=-Xmx700m"
+      MB_DB_DBNAME: metabase
+      MB_DB_PORT: 5432
+      MB_DB_USER: metabase
+      MB_DB_PASS: metabase
+      MB_DB_HOST: postgres
+    networks:
+      - app_network
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: true
+      MP_SMTP_AUTH_ALLOW_INSECURE: true
+    networks:
+      - app_network
+
+volumes:
+  postgres_data_x:
+
+networks:
+  app_network:
