@@ -1,0 +1,10 @@
+@media print {
+    body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    #embed-scroll-container {
+        height: auto !important;
+        overflow: visible !important;
+    }
+}

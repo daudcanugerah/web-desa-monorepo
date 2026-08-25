@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Desa Admin Dashboard</title>
+    <script>
+      // Theme bootstrap — runs before app loads to prevent flash of wrong theme.
+      // Order of resolution:
+      //   1. Explicit user choice ('light' | 'dark') from localStorage
+      //   2. 'auto' → match OS preference
+      //   3. Default to light
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          var mode = stored === 'light' || stored === 'dark' || stored === 'auto' ? stored : 'auto';
+          var resolved = mode === 'auto'
+            ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+            : mode;
+          if (resolved === 'dark') document.documentElement.classList.add('dark');
+        } catch (_) { /* localStorage unavailable */ }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

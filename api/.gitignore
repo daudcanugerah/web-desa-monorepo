@@ -1,0 +1,53 @@
+# Binaries
+desa-api
+desa-api-linux
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config files with secrets
+config.toml
+integration/test_uploads
+_private/
+
+# Logs
+*.log
+/tmp/
+
+# Air
+tmp/
+build-errors.log
+
+# Backups
+backups/
+
+# Test containers
+testdata/
+uploads/
+uploads/
+.tokensave

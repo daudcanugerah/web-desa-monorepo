@@ -1,0 +1,411 @@
+version: 2
+models:
+  - name: events
+    config:
+      tags: ["core", "ai"]
+    meta:
+      parameters:
+        event_status:
+          label: "Event Status"
+          description: "Filter events by status type. Tests model-scoped ld.parameters.events.event_status Liquid syntax."
+          default: "all"
+          options:
+            - "all"
+            - "song_played"
+            - "add_to_cart"
+      primary_key: event_id
+      group_details:
+        events:
+          label: Events
+          description: Events that happened in the Jaffle Shop
+        nested_group:
+          label: nested group
+        another_nested_group:
+          label: another nested group
+      ai_hint:
+        - This is an events table
+        - Contains user activity and engagement data
+    columns:
+      - name: timestamp_tz
+        description: ""
+        meta:
+          dimension:
+            label: "Timestamp (with timezone)"
+            ai_hint:
+              - Timestamp with timezone
+              - Includes timezone information
+            type: timestamp
+            time_intervals:
+              - RAW
+              - MILLISECOND
+              - SECOND
+              - MINUTE
+              - HOUR
+              - DAY
+              - DAY_OF_WEEK_INDEX
+              - DAY_OF_WEEK_NAME
+              - DAY_OF_MONTH_NUM
+              - DAY_OF_YEAR_NUM
+              - WEEK
+              - WEEK_NUM
+              - MONTH
+              - MONTH_NUM
+              - MONTH_NAME
+              - QUARTER
+              - QUARTER_NUM
+              - QUARTER_NAME
+              - YEAR
+              - YEAR_NUM
+              - HOUR_OF_DAY_NUM
+              - MINUTE_OF_HOUR_NUM
+      - name: timestamp_ntz
+        description: ""
+        meta:
+          dimension:
+            type: timestamp
+      - name: timestamp_ltz
+        description: ""
+        meta:
+          dimension:
+            type: timestamp
+      - name: date
+        description: ""
+        meta:
+          dimension:
+            type: date
+            format: "dd mmmm yyyy"
+            urls:
+              - label: Open in Google Calendar
+                url:
+                  'https://calendar.google.com/calendar/u/0/r/day/${ value.formatted |split:
+                  "-" |join: "/"}'
+      - name: dynamic_date
+        description: "Dynamic date dimension that changes granularity based on the date_granularity parameter. Uses Liquid template syntax for conditional SQL."
+        meta:
+          dimension:
+            type: string
+            sql: >
+              {% raw %}{% if ld.parameters.date_granularity == 'Day' %} ${TABLE}.date
+              {% elsif ld.parameters.date_granularity == 'Week' %} DATE_TRUNC('week', ${TABLE}.date)
+              {% elsif ld.parameters.date_granularity == 'Month' %} DATE_TRUNC('month', ${TABLE}.date)
+              {% elsif ld.parameters.date_granularity == 'Quarter' %} DATE_TRUNC('quarter', ${TABLE}.date)
+              {% elsif ld.parameters.date_granularity == 'Year' %} DATE_TRUNC('year', ${TABLE}.date)
+              {% else %} ${TABLE}.date
+              {% endif %}{% endraw %}
+      - name: dynamic_date_case
+        description: "Same as dynamic_date but using Liquid case/when syntax instead of if/elsif."
+        meta:
+          dimension:
+            type: string
+            sql: >
+              {% raw %}{% case ld.parameters.date_granularity %}
+              {% when 'Day' %} ${TABLE}.date
+              {% when 'Week' %} DATE_TRUNC('week', ${TABLE}.date)
+              {% when 'Month' %} DATE_TRUNC('month', ${TABLE}.date)
+              {% when 'Quarter' %} DATE_TRUNC('quarter', ${TABLE}.date)
+              {% when 'Year' %} DATE_TRUNC('year', ${TABLE}.date)
+              {% else %} ${TABLE}.date
+              {% endcase %}{% endraw %}
+      - name: dynamic_metric
+        description: "Switches between counting events or summing event IDs based on the metric_type parameter. Demonstrates Liquid column-switching pattern from Looker migrations."
+        meta:
+          dimension:
+            hidden: true
+            type: number
+            sql: >
+              {% raw %}{% if ld.parameters.metric_type == 'count' %} 1
+              {% else %} ${TABLE}.event_id
+              {% endif %}{% endraw %}
+          metrics:
+            dynamic_total:
+              type: sum
+              description: "When metric_type=count, counts events. When metric_type=revenue, sums event IDs."
+      - name: conditional_event_id
+        description: "Returns event_id only when the event_id dimension is selected in the query, NULL otherwise. Uses ld.query.fields contains syntax."
+        meta:
+          dimension:
+            type: number
+            sql: >
+              {% raw %}{% if ld.query.fields contains "events.event_id" %}
+                ${TABLE}.event_id
+              {% else %}
+                NULL
+              {% endif %}{% endraw %}
+      - name: filtered_status_label
+        description: "Returns a label indicating whether the event dimension has an active filter. Uses ld.query.filters contains syntax."
+        meta:
+          dimension:
+            type: string
+            sql: >
+              {% raw %}{% if ld.query.filters contains "events.event" %}
+                'Filtered: ' || ${TABLE}.event
+              {% else %}
+                'All Events'
+              {% endif %}{% endraw %}
+      - name: filtered_event
+        description: "Filters events by the model-scoped event_status parameter using ld.parameters.events.event_status Liquid syntax."
+        meta:
+          dimension:
+            type: string
+            sql: >
+              {% raw %}{% if ld.parameters.events.event_status == 'all' %}
+                ${TABLE}.event
+              {% else %}
+                CASE WHEN ${TABLE}.event = '{{ ld.parameters.events.event_status }}' THEN ${TABLE}.event ELSE NULL END
+              {% endif %}{% endraw %}
+      - name: event
+        description: ""
+        meta:
+          dimension:
+            type: string
+            groups: ["events"]
+          metrics:
+            count:
+              type: count
+      - name: image_url
+        description: "Image URL for the event from events.sql"
+        meta:
+          dimension:
+            type: string
+            groups: ["image"]
+            image:
+              url: "${value.raw}"
+          additional_dimensions:
+            image_with_size:
+              groups: ["image"]
+              description: "Image URL with size"
+              type: string
+              sql: ${image_url}
+              image:
+                url: "${value.raw}"
+                width: 128 # squared, do not preserve aspect ratio
+                height: 128
+                fit: cover
+      - name: event_id
+        description: ""
+        meta:
+          dimension:
+            type: number
+            groups: ["events", "nested_group", "another_nested_group"]
+          additional_dimensions:
+            image_event_id:
+              groups: ["image"]
+              description: "Additional dimension of image URL for event_id. Uses event_id from SQL, but image URL template combines with event name from row"
+              type: string
+              # creates url in sql
+              # intentionally introduce some missing images to test the image cell
+              sql: |
+                case
+                  when ${event_id} > 100 then 'lightdash.com/missing-image.jpg'
+                  else 'placehold.co/300x100?text=id%20' || ${event_id}
+                  end
+              image:
+                # Template combines value (the URL from SQL) with other row fields
+                # Use liquidjs to combine the URL with the event name and upcase
+                url: "https://${value.raw}-${row.events.event.raw | upcase}"
+            image_dynamic_width:
+              groups: ["image"]
+              description: "Build a width dynamic image"
+              type: string
+              sql: |
+                'https://placehold.co/' || ${event_id} || 'x100?text=image'
+              image:
+                url: "${value.raw}"
+            image_invalid_protocol:
+              groups: ["image"]
+              description: "Invalid URL protocol"
+              type: string
+              sql: ${event_id}
+              image:
+                url: "file://${value.raw}"
+            event_tier:
+              type: string
+              description: Ratio of event_id to event
+              sql: |
+                case 
+                  when ${event_id} < 100 then 'Low' 
+                  when ${event_id} < 1000 then 'High'
+                  else 'Very high' end
+          metrics:
+            with_currency_parameter:
+              type: sum
+              format: '${lightdash.parameters.currency=="usd"?"$":""}${lightdash.parameters.currency=="eur"?"€":""}${lightdash.parameters.currency=="gbp"?"£":""}0,0.00'
+              sql: |
+                CASE 
+                  WHEN ${lightdash.parameters.currency} = 'usd' THEN ${event_id} * 1
+                  ELSE ${event_id} * 0.86
+                END
+            with_multiple_parameters:
+              type: sum
+              # only shows $ currency
+              format: '${ld.parameters.currency=="usd"?"$":""}0,0${ld.parameters.decimals=="true"?".00":""}'
+            with_decimals_format:
+              type: sum
+              format: '0,0${ld.parameters.decimals=="true"?".00":""}'
+            with_mixed_parameter:
+              type: sum
+              # Invalid parameter, using the wrong value for decimals
+              format: '${ld.parameters.decimals=="usd"?"$":"-"}0,0.00'
+            in_gbp:
+              type: sum
+              format: "gbp"
+            in_gbp_with_format_expression:
+              type: sum
+              format: "[$£]#,##0.00"
+            in_jpy:
+              type: sum
+              format: "jpy"
+            in_dkk:
+              type: sum
+              format: "dkk"
+            in_eur:
+              type: sum
+              format: "eur"
+            in_eur_with_round_2:
+              type: sum
+              format: "eur"
+              round: 2
+            in_eur_with_round_0:
+              type: sum
+              format: "eur"
+              round: 0
+            with_round_2:
+              type: sum
+              round: 2
+            in_thousands_of_eur:
+              type: sum
+              format: "eur"
+              compact: thousands
+            in_thousands_of_eur_with_round_0:
+              type: sum
+              format: "eur"
+              round: 0
+              compact: thousands
+            in_mi:
+              type: sum
+              format: "mi"
+            in_km:
+              type: sum
+              format: "km"
+            in_percent:
+              type: sum
+              format: "percent"
+            in_thousands:
+              type: sum
+              compact: thousands
+            in_millions:
+              type: sum
+              compact: millions
+            in_billions:
+              type: sum
+              compact: billions
+            in_trillions:
+              type: sum
+              compact: trillions
+            percentile_25:
+              type: percentile
+              percentile: 25
+            percentile_50:
+              type: percentile
+              percentile: 50
+            percentile_75:
+              type: percentile
+              percentile: 75
+            median:
+              type: median
+            with_filters:
+              type: sum
+              filters:
+                - event_id: "!null"
+                - event_id: ">5"
+                - event: "song_played"
+            # Example of non-aggregate metric (type: number) with aggregation in SQL
+            # This pattern is common where type:number measures have
+            # aggregation functions in their SQL field
+            unique_event_count:
+              type: number
+              description: "Count of distinct events using non-aggregate type with SQL aggregation"
+              sql: count(distinct ${event_id})
+            event_stddev:
+              type: number
+              description: "Standard deviation of event IDs using non-aggregate type"
+              sql: stddev(${event_id})
+            # Example of non-aggregate metric (type: number) that references BOTH
+            # dimensions AND other metrics. This pattern is common where
+            # type:number measures have SQL like "sum(${dim}) / ${metric}"
+            avg_event_id_per_unique:
+              type: number
+              description: "Average event_id per unique event (combines dimension and metric references)"
+              sql: sum(${event_id}) / NULLIF(${unique_event_count}, 0)
+            # Example of non-aggregate metric using ${TABLE} reference
+            # This pattern is common where measures use ${TABLE}.column syntax
+            count_song_played_events:
+              type: number
+              description: "Count of events where event is song_played using TABLE reference"
+              sql: count(case when ${TABLE}.event = 'song_played' then 1 end)
+            # --- Nested aggregate test metrics ---
+            # Inner aggregate metric (similar to the customer's ltv_12m_gbp_new_metric)
+            max_event_id:
+              type: max
+              description: "Maximum event ID per group"
+            # Nested aggregate: type:number wrapping aggregate metric reference
+            # This pattern currently fails with "Aggregate functions cannot be nested"
+            # because it compiles to SUM(MAX("events"."event_id")) which is invalid SQL
+            sum_of_max_event_id:
+              type: number
+              description: "Sum of max event IDs - nested aggregate pattern (SUM wrapping MAX)"
+              sql: sum(${max_event_id})
+            # More complex nested aggregate with division (matches customer pattern)
+            avg_max_event_id:
+              type: number
+              description: "Average of max event IDs - sum(max_metric) / count_metric"
+              sql: sum(${max_event_id}) / NULLIF(${unique_event_count}, 0)
+            # COUNT(DISTINCT) wrapping aggregate metric (PROD-5657: 1 chart with this pattern)
+            count_distinct_of_max:
+              type: number
+              description: "Count distinct of max event IDs - COUNT(DISTINCT MAX(...)) pattern"
+              sql: count(distinct ${max_event_id})
+            # Conditional SUM wrapping aggregate metric (common Looker migration pattern)
+            # e.g. SUM(CASE WHEN condition THEN ${aggregate_metric} END)
+            conditional_sum_of_max:
+              type: number
+              description: "Conditional sum of max event IDs - SUM(CASE WHEN ... THEN MAX(...) END)"
+              sql: sum(case when ${max_event_id} > 100 then ${max_event_id} else 0 end)
+            # Multiplication of two aggregate metrics (customer LTV pattern)
+            # This does NOT produce nested aggregation - it compiles to MAX(...) * COUNT(DISTINCT ...)
+            # which is valid SQL (sibling aggregates, not nested). No CTE needed.
+            product_of_aggregates:
+              type: number
+              group: "aggregates"
+              description: "Product of two aggregate metrics - valid SQL, no nesting"
+              sql: ${max_event_id} * ${unique_event_count}
+            # Reproduces customer bug: sum(bare_column) / ${aggregate_metric}
+            # Uses a bare column name (no ${} or ${TABLE}) like the customer's
+            # sql: sum(prediction_d60_total)/nullif(${total_cost}, 0)
+            # GH-21089: window fn wrapping aggregate metric + ${TABLE} ref
+            # Before fix: ${TABLE}.event resolved to "events".event inside
+            # nested_agg_results CTE where only nested_agg is in scope
+            window_sum_of_max:
+              type: number
+              description: "Window sum of max event IDs partitioned by event type"
+              sql: SUM(${max_event_id}) OVER (PARTITION BY ${TABLE}.event)
+            # --- Transitive nested aggregate test metrics ---
+            # Reproduces customer bug: type:number → type:number (with agg) → type:max
+            # count_if_of_max wraps max_event_id in COUNT_IF, then
+            # ratio_of_count_if references count_if_of_max without any outer aggregation.
+            # The compiled SQL ends up as COUNT_IF(MAX(...)) / NULLIF(COUNT(...), 0)
+            # which is invalid (nested aggregates) but the detection misses it because
+            # ratio_of_count_if's raw SQL has no aggregation — only transitive inlining
+            # introduces the nesting.
+            sum_case_of_max:
+              type: number
+              description: "Count of groups where max event ID is above threshold"
+              sql: SUM(CASE WHEN ${max_event_id} > 100 THEN 1 ELSE 0 END)
+            ratio_of_sum_case:
+              type: number
+              description: "Ratio of sum_case_of_max to total count - transitive nested aggregate"
+              sql: ${sum_case_of_max} / NULLIF(${count}, 0)
+            raw_agg_with_metric_ref:
+              type: number
+              description: "Raw column aggregation divided by aggregate metric ref"
+              sql: sum(event_id) / NULLIF(${count}, 0)

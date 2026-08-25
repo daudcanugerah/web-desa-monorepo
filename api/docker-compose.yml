@@ -1,0 +1,86 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: desa-api-postgres
+    environment:
+      POSTGRES_USER: desauser
+      POSTGRES_PASSWORD: desapass
+      POSTGRES_DB: desa
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - desa-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U desauser -d desa"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: desa-api-app
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_ENV=production
+      - APP_NAME=desa-api
+      - APP_VERSION=1.0.0
+      - APP_HTTP_ADDR=:8080
+      - APP_TIMEZONE=Asia/Jakarta
+      - POSTGRES_DSN=postgres://desauser:desapass@postgres:5432/desa?sslmode=disable
+      - POSTGRES_MAX_OPEN_CONNS=25
+      - POSTGRES_MAX_IDLE_CONNS=5
+      - POSTGRES_CONN_MAX_LIFETIME=5m
+      - JWT_SECRET=change-this-in-production
+      - JWT_EXPIRATION=24h
+      - BACKUP_DIRECTORY=/app/backups
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+      - RATELIMIT_AUTH_REQUESTS_PER_MINUTE=5
+      - RATELIMIT_PUBLIC_REQUESTS_PER_MINUTE=100
+      - RATELIMIT_PROTECTED_REQUESTS_PER_MINUTE=30
+      - FILEUPLOAD_MAX_IMAGE_SIZE_MB=10
+      - FILEUPLOAD_MAX_DOCUMENT_SIZE_MB=50
+      - FILEUPLOAD_UPLOAD_PUBLIC_DIRECTORY=/app/uploads/public
+      - FILEUPLOAD_UPLOAD_PRIVATE_DIRECTORY=/app/uploads/private
+      - FILEUPLOAD_UPLOAD_PPID_DIRECTORY=/app/uploads/ppid
+      - GALLERY_THUMBNAIL_MAX_WIDTH=400
+      - GALLERY_THUMBNAIL_MAX_HEIGHT=400
+      - GALLERY_THUMBNAIL_QUALITY=80
+      - GALLERY_IMAGE_MAX_SIZE_MB=10
+      - GALLERY_VIDEO_MAX_SIZE_MB=100
+      - GALLERY_BULK_UPLOAD_MAX_FILES=20
+      - GALLERY_BULK_UPLOAD_MAX_TOTAL_MB=250
+      - GALLERY_FFMPEG_PATH=ffmpeg
+      - GALLERY_FFPROBE_PATH=ffprobe
+      - GALLERY_VIDEO_THUMBNAIL_FRAME_SECONDS=1
+    volumes:
+      - app_uploads:/app/uploads
+      - app_backups:/app/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - desa-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+networks:
+  desa-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  app_uploads:
+    driver: local
+  app_backups:
+    driver: local

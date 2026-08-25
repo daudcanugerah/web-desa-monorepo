@@ -1,0 +1,69 @@
+# Development Environment Configuration
+
+[app]
+name = "desa-api"
+version = "1.0.0"
+http_addr = ":8080"
+timezone = "Asia/Jakarta"
+read_timeout = "15s"
+write_timeout = "15s"
+idle_timeout = "60s"
+
+[postgres]
+dsn = "postgres://desa_user:desa_pass@localhost:5432/desa_dev?sslmode=disable"
+max_open_conns = 25
+max_idle_conns = 5
+conn_max_lifetime = "5m"
+
+[jwt]
+# Secrets must be supplied via env vars. The placeholder below is rejected
+# by the startup validation in config.InitConfig when no real secret is
+# provided. Set JWT_SECRET in the environment, or set
+# ALLOW_INSECURE_SECRETS=1 to bypass (integration tests only).
+secret = "dev-secret-key-change-this"
+expiration = "24h"
+
+[backup]
+directory = "./backups"
+
+[cors]
+allowed_origins = ["http://localhost:3000", "http://localhost:5173"]
+
+[ratelimit]
+auth_requests_per_minute = 5
+public_requests_per_minute = 100
+protected_requests_per_minute = 30
+
+[fileupload]
+max_image_size_mb = 10
+max_document_size_mb = 50
+upload_public_directory = "./uploads/public"
+upload_private_directory = "./uploads/private"
+
+[gallery]
+thumbnail_max_width = 400
+thumbnail_max_height = 400
+thumbnail_quality = 80
+image_max_size_mb = 10
+video_max_size_mb = 100
+bulk_upload_max_files = 20
+bulk_upload_max_total_mb = 250
+ffmpeg_path = "ffmpeg"
+ffprobe_path = "ffprobe"
+video_thumbnail_frame_seconds = 1
+
+[smtp]
+host = "smtp.gmail.com"
+port = 587
+username = ""
+password = ""
+from_name = "Village Administration"
+from_email = ""
+
+[otel]
+metric = true
+trace = true
+log = true
+
+[debug]
+profiler_addr = "localhost:6060"

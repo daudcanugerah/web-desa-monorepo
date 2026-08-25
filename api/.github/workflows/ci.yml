@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  GO_VERSION: '1.25'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install dev tools
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          go install github.com/swaggo/swag/cmd/swag@latest
+        shell: bash
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Unit tests
+        env:
+          ALLOW_INSECURE_SECRETS: '1'
+        run: make test-unit
+
+      - name: Coverage threshold
+        env:
+          ALLOW_INSECURE_SECRETS: '1'
+        run: make test-coverage-check
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Build
+        env:
+          ALLOW_INSECURE_SECRETS: '1'
+        run: make build
+
+      - name: Vet
+        run: go vet ./...
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    needs: lint
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: desa
+          POSTGRES_USER: desauser
+          POSTGRES_PASSWORD: desapass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U desauser"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      INTEGRATION_TEST_DB_URL: postgres://desauser:desapass@localhost:5432/desa?sslmode=disable
+      ALLOW_INSECURE_SECRETS: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Integration tests
+        run: make test-integration
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    needs: [unit, build, integration]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up BuildKit
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: desa-api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

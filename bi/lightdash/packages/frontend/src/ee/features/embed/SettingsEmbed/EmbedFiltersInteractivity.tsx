@@ -1,0 +1,293 @@
+import {
+    assertUnreachable,
+    FilterInteractivityValues,
+    getFilterInteractivityValue,
+    getItemId,
+    isDashboardChartTileType,
+    type DashboardFilterInteractivityOptions,
+    type SavedChartsInfoForDashboardAvailableFilters,
+} from '@lightdash/common';
+import {
+    Checkbox,
+    Divider,
+    Group,
+    SegmentedControl,
+    Stack,
+    Switch,
+    Text,
+    Tooltip,
+} from '@mantine-8/core';
+import { IconInfoCircle } from '@tabler/icons-react';
+import { useCallback, useMemo } from 'react';
+import { getConditionalRuleLabelFromItem } from '../../../../components/common/Filters/FilterInputs/utils';
+import MantineIcon from '../../../../components/common/MantineIcon';
+import { type FieldsWithSuggestions } from '../../../../components/Explorer/FiltersCard/useFieldsWithSuggestions';
+import {
+    useDashboardQuery,
+    useDashboardsAvailableFilters,
+} from '../../../../hooks/dashboard/useDashboard';
+import { useProjectUuid } from '../../../../hooks/useProjectUuid';
+
+type Props = {
+    dashboardUuid?: string;
+    interactivityOptions: DashboardFilterInteractivityOptions;
+    onInteractivityOptionsChange: (
+        interactivityOptions: DashboardFilterInteractivityOptions,
+    ) => void;
+};
+
+function getFilterInteractivityValueLabel(value: FilterInteractivityValues) {
+    switch (value) {
+        case FilterInteractivityValues.some:
+            return 'Some filters';
+        case FilterInteractivityValues.all:
+            return 'All filters';
+        case FilterInteractivityValues.none:
+            return 'No filters';
+        default:
+            return assertUnreachable(
+                value,
+                `Unknown FilterInteractivityValue ${value}`,
+            );
+    }
+}
+
+const EmbedFiltersInteractivity: React.FC<Props> = ({
+    dashboardUuid,
+    interactivityOptions,
+    onInteractivityOptionsChange,
+}) => {
+    const projectUuid = useProjectUuid();
+    const { data: dashboard } = useDashboardQuery({
+        uuidOrSlug: dashboardUuid,
+        projectUuid,
+    });
+    const dashboardFilters = useMemo(() => {
+        return Object.values(dashboard?.filters || {}).flat();
+    }, [dashboard]);
+
+    const savedChartUuidsAndTileUuids = useMemo(
+        () =>
+            dashboard?.tiles
+                ?.filter(isDashboardChartTileType)
+                .reduce<SavedChartsInfoForDashboardAvailableFilters>(
+                    (acc, tile) => {
+                        if (tile.properties.savedChartUuid) {
+                            acc.push({
+                                tileUuid: tile.uuid,
+                                savedChartUuid: tile.properties.savedChartUuid,
+                            });
+                        }
+                        return acc;
+                    },
+                    [],
+                ) || [],
+        [dashboard?.tiles],
+    );
+
+    const { data: availableTileFilters } = useDashboardsAvailableFilters(
+        savedChartUuidsAndTileUuids,
+    );
+
+    const fieldsWithSuggestions = useMemo(() => {
+        return availableTileFilters &&
+            availableTileFilters.allFilterableFields &&
+            availableTileFilters.allFilterableFields.length > 0
+            ? availableTileFilters.allFilterableFields.reduce<FieldsWithSuggestions>(
+                  (sum, field) => ({
+                      ...sum,
+                      [getItemId(field)]: field,
+                  }),
+                  {},
+              )
+            : {};
+    }, [availableTileFilters]);
+
+    const setInteractivityOptions = useCallback(
+        ({
+            enabled: newEnabledValue,
+            allowedFilters: newAllowedFilters,
+            hidden: newHiddenValue,
+        }: {
+            enabled?: FilterInteractivityValues;
+            allowedFilters?: string[];
+            hidden?: boolean;
+        }) => {
+            const enabled = getFilterInteractivityValue(
+                newEnabledValue ?? interactivityOptions.enabled,
+            );
+
+            let allowedFilters;
+
+            switch (enabled) {
+                case FilterInteractivityValues.some:
+                    allowedFilters =
+                        newAllowedFilters ??
+                        interactivityOptions.allowedFilters;
+                    break;
+                case FilterInteractivityValues.none:
+                case FilterInteractivityValues.all:
+                    break;
+                default:
+                    return assertUnreachable(
+                        enabled,
+                        `Unknown FilterInteractivityValue ${enabled}`,
+                    );
+            }
+
+            onInteractivityOptionsChange({
+                enabled,
+                allowedFilters,
+                hidden: newHiddenValue ?? interactivityOptions.hidden ?? false,
+            });
+        },
+        [
+            interactivityOptions.enabled,
+            interactivityOptions.allowedFilters,
+            interactivityOptions.hidden,
+            onInteractivityOptionsChange,
+        ],
+    );
+
+    return (
+        <Stack gap="sm">
+            <Group gap="xs">
+                <Text size="sm" fw={500}>
+                    Users can change:
+                </Text>
+                <SegmentedControl
+                    radius="md"
+                    value={interactivityOptions.enabled as string}
+                    onChange={(value: string) => {
+                        setInteractivityOptions({
+                            enabled: value as FilterInteractivityValues,
+                        });
+                    }}
+                    data={[
+                        {
+                            label: getFilterInteractivityValueLabel(
+                                FilterInteractivityValues.none,
+                            ),
+                            value: FilterInteractivityValues.none,
+                        },
+                        {
+                            label: getFilterInteractivityValueLabel(
+                                FilterInteractivityValues.some,
+                            ),
+                            value: FilterInteractivityValues.some,
+                            disabled: dashboardFilters?.length === 0,
+                        },
+                        {
+                            label: getFilterInteractivityValueLabel(
+                                FilterInteractivityValues.all,
+                            ),
+                            value: FilterInteractivityValues.all,
+                            disabled: dashboardFilters?.length === 0,
+                        },
+                    ]}
+                    size="xs"
+                />
+            </Group>
+            <Switch
+                size="sm"
+                checked={interactivityOptions.hidden ?? false}
+                disabled={
+                    getFilterInteractivityValue(
+                        interactivityOptions.enabled,
+                    ) === FilterInteractivityValues.none
+                }
+                label={
+                    <Group gap="xs">
+                        <Text inherit>Hide filters</Text>
+                        <Tooltip
+                            label="Hide filters from the embed UI while still applying them. Useful when building custom filter controls with the React SDK."
+                            withArrow
+                            withinPortal
+                            multiline
+                            maw="300px"
+                            position="right"
+                        >
+                            <MantineIcon icon={IconInfoCircle} size="sm" />
+                        </Tooltip>
+                    </Group>
+                }
+                onChange={(event) => {
+                    setInteractivityOptions({
+                        hidden: event.currentTarget.checked,
+                    });
+                }}
+            />
+            {interactivityOptions.enabled ===
+                FilterInteractivityValues.some && (
+                <Checkbox.Group
+                    value={interactivityOptions.allowedFilters || []}
+                    onChange={(values) => {
+                        setInteractivityOptions({ allowedFilters: values });
+                    }}
+                >
+                    <Group>
+                        {dashboardFilters &&
+                            dashboardFilters.map((filter) => {
+                                const field =
+                                    fieldsWithSuggestions[
+                                        filter.target.fieldId
+                                    ];
+
+                                if (!field) return;
+
+                                const labels = getConditionalRuleLabelFromItem(
+                                    filter,
+                                    field,
+                                );
+
+                                return (
+                                    <Checkbox
+                                        key={filter.id}
+                                        value={filter.id}
+                                        label={
+                                            <>
+                                                <Text fw={600} span fz="xs">
+                                                    {labels.field}{' '}
+                                                </Text>
+                                                {filter.disabled ? (
+                                                    <Text
+                                                        span
+                                                        c="ldGray.6"
+                                                        fz="xs"
+                                                    >
+                                                        is any value
+                                                    </Text>
+                                                ) : (
+                                                    <>
+                                                        <Text
+                                                            span
+                                                            c="ldGray.7"
+                                                            fz="xs"
+                                                        >
+                                                            {
+                                                                labels.operator
+                                                            }{' '}
+                                                        </Text>
+                                                        <Text
+                                                            fw={700}
+                                                            span
+                                                            fz="xs"
+                                                        >
+                                                            {labels.value}
+                                                        </Text>
+                                                    </>
+                                                )}
+                                            </>
+                                        }
+                                    />
+                                );
+                            })}
+                    </Group>
+                </Checkbox.Group>
+            )}
+            <Divider />
+        </Stack>
+    );
+};
+
+export default EmbedFiltersInteractivity;
