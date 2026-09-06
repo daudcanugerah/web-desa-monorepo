@@ -45,6 +45,7 @@ bulk_upload_max_total_mb = 250
 ffmpeg_path = "ffmpeg"
 ffprobe_path = "ffprobe"
 video_thumbnail_frame_seconds = 1
+signed_urls_enabled = true
 
 [otel]
 metric = true

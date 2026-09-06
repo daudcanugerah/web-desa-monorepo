@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	"webdesa/api/interface/http/middleware"
-	galleryUsecase "webdesa/api/usecase/gallery"
 	"webdesa/api/pkg/handlerutil"
 	"webdesa/api/pkg/response"
+	galleryUsecase "webdesa/api/usecase/gallery"
 )
 
 // PPIDUploadHandler handles PPID document and thumbnail uploads. Uploads
@@ -26,21 +26,29 @@ import (
 type PPIDUploadHandler struct {
 	fileStore galleryUsecase.FileStore
 	logger    middleware.Logger
+	// Task 7.1: when enabled, upload responses embed signed
+	// /api/v1/media/{id}/...?jwt= URLs instead of the legacy per-scope
+	// paths removed in Task 7.4.
+	signedURL         *galleryUsecase.SignedURLService
+	signedURLsEnabled bool
 }
 
 // NewPPIDUploadHandler creates a new ppid upload handler.
-func NewPPIDUploadHandler(fileStore galleryUsecase.FileStore, logger middleware.Logger) *PPIDUploadHandler {
+func NewPPIDUploadHandler(fileStore galleryUsecase.FileStore, logger middleware.Logger, signedURL *galleryUsecase.SignedURLService, signedURLsEnabled bool) *PPIDUploadHandler {
 	return &PPIDUploadHandler{
-		fileStore: fileStore,
-		logger:    logger,
+		fileStore:         fileStore,
+		logger:            logger,
+		signedURL:         signedURL,
+		signedURLsEnabled: signedURLsEnabled,
 	}
 }
 
 // PPIDUploadMediaResponse represents the upload response
 type PPIDUploadMediaResponse struct {
-	URL      string `json:"url"`
-	MediaID  string `json:"media_id"`
-	Filename string `json:"filename"`
+	URL          string  `json:"url"`
+	ThumbnailURL *string `json:"thumbnail_url,omitempty"`
+	MediaID      string  `json:"media_id"`
+	Filename     string  `json:"filename"`
 }
 
 // PPIDUploadResponse is the combined response for POST /ppid/upload.
@@ -68,7 +76,7 @@ type PPIDUploadResponse struct {
 // @Security     BearerAuth
 // @Router       /ppid/upload-media [post]
 func (h *PPIDUploadHandler) UploadDocument(w http.ResponseWriter, r *http.Request) {
-	h.uploadMedia(w, r, h.fileStore.SaveDocument)
+	h.uploadMedia(w, r, h.fileStore.SaveDocument, false)
 }
 
 // UploadThumbnail godoc
@@ -88,7 +96,7 @@ func (h *PPIDUploadHandler) UploadDocument(w http.ResponseWriter, r *http.Reques
 // @Security     BearerAuth
 // @Router       /ppid/upload-thumbnail [post]
 func (h *PPIDUploadHandler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
-	h.uploadMedia(w, r, h.fileStore.SaveImage)
+	h.uploadMedia(w, r, h.fileStore.SaveImage, true)
 }
 
 // Upload godoc
@@ -128,7 +136,7 @@ func (h *PPIDUploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 			response.ErrorWithDetails(w, http.StatusBadRequest, "Failed to upload document", err)
 			return
 		}
-		resp.Document = h.toResponse(saved, docHeader.Filename)
+		resp.Document = h.toResponse(saved, docHeader.Filename, false)
 	} else if docErr != http.ErrMissingFile {
 		h.logger.Error(ctx, "failed to get document from form", "error", docErr.Error())
 		response.Error(w, http.StatusBadRequest, "Failed to read document file")
@@ -144,7 +152,7 @@ func (h *PPIDUploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 			response.ErrorWithDetails(w, http.StatusBadRequest, "Failed to upload thumbnail", err)
 			return
 		}
-		resp.Thumbnail = h.toResponse(saved, thumbHeader.Filename)
+		resp.Thumbnail = h.toResponse(saved, thumbHeader.Filename, true)
 	} else if thumbErr != http.ErrMissingFile {
 		h.logger.Error(ctx, "failed to get thumbnail from form", "error", thumbErr.Error())
 		response.Error(w, http.StatusBadRequest, "Failed to read thumbnail file")
@@ -159,7 +167,7 @@ func (h *PPIDUploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	response.Success(w, http.StatusOK, resp)
 }
 
-func (h *PPIDUploadHandler) uploadMedia(w http.ResponseWriter, r *http.Request, save func(ctx context.Context, feature string, in galleryUsecase.FileInput) (galleryUsecase.SavedFile, error)) {
+func (h *PPIDUploadHandler) uploadMedia(w http.ResponseWriter, r *http.Request, save func(ctx context.Context, feature string, in galleryUsecase.FileInput) (galleryUsecase.SavedFile, error), withThumbnail bool) {
 	ctx := r.Context()
 
 	if err := r.ParseMultipartForm(50 << 20); err != nil {
@@ -185,7 +193,7 @@ func (h *PPIDUploadHandler) uploadMedia(w http.ResponseWriter, r *http.Request, 
 
 	h.logger.Info(ctx, "ppid media uploaded successfully", "media_id", saved.MediaID, "filename", fileHeader.Filename, "size", fileHeader.Size)
 
-	response.Success(w, http.StatusOK, h.toResponse(saved, fileHeader.Filename))
+	response.Success(w, http.StatusOK, h.toResponse(saved, fileHeader.Filename, withThumbnail))
 }
 
 // saveOne saves a single uploaded file via the given FileStore method and
@@ -199,13 +207,29 @@ func (h *PPIDUploadHandler) saveOne(ctx context.Context, save func(ctx context.C
 	})
 }
 
-// toResponse converts a SavedFile into the API response shape.
-func (h *PPIDUploadHandler) toResponse(saved galleryUsecase.SavedFile, filename string) *PPIDUploadMediaResponse {
-	return &PPIDUploadMediaResponse{
-		URL:      galleryUsecase.URLFor(galleryUsecase.URLScopeAdmin, "content", saved.MediaID),
+// toResponse converts a SavedFile into the API response shape. Documents
+// have no generated thumbnail (withThumbnail=false); images get a
+// thumbnail URL. Signed URLs point at the unified /api/v1/media/{id}/...
+// route when enabled; legacy per-scope paths are the flag-off fallback.
+func (h *PPIDUploadHandler) toResponse(saved galleryUsecase.SavedFile, filename string, withThumbnail bool) *PPIDUploadMediaResponse {
+	resp := &PPIDUploadMediaResponse{
 		MediaID:  saved.MediaID,
 		Filename: filename,
 	}
+	if h.signedURLsEnabled && h.signedURL != nil {
+		resp.URL = galleryUsecase.SignedURLPath("content", saved.MediaID) + h.signedURL.SignedURLQuery(galleryUsecase.ScopeAdmin, saved.MediaID, "user:admin", 0)
+		if withThumbnail {
+			thumb := galleryUsecase.SignedURLPath("thumbnail", saved.MediaID) + h.signedURL.SignedURLQuery(galleryUsecase.ScopeAdmin, saved.MediaID, "user:admin", 0)
+			resp.ThumbnailURL = &thumb
+		}
+		return resp
+	}
+	resp.URL = galleryUsecase.URLFor(galleryUsecase.URLScopeAdmin, "content", saved.MediaID)
+	if withThumbnail {
+		thumb := galleryUsecase.URLFor(galleryUsecase.URLScopeAdmin, "thumbnail", saved.MediaID)
+		resp.ThumbnailURL = &thumb
+	}
+	return resp
 }
 
 // contentTypeFor returns the file's declared Content-Type, falling back to

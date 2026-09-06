@@ -313,7 +313,7 @@ func runServer(ctx context.Context) error {
 	signedMediaHandler := galleryhandler.NewSignedMediaHandler(galleryService, signedURLService, mainOtel.Log)
 	ppidHandler := ppidhandler.NewPPIDHandler(ppidService, systemConfig.FileUpload.GetPPIDUploadDirectory(), mainOtel.Log, signedURLService, systemConfig.Gallery.IsSignedURLsEnabled())
 	ppidCategoryHandler := ppidcategoryhandler.NewPPIDCategoryHandler(ppidCategoryService)
-	ppidUploadHandler := ppidhandler.NewPPIDUploadHandler(fileStore, mainOtel.Log)
+	ppidUploadHandler := ppidhandler.NewPPIDUploadHandler(fileStore, mainOtel.Log, signedURLService, systemConfig.Gallery.IsSignedURLsEnabled())
 	strukturHandler := strukturhandler.NewStrukturHandler(strukturService, signedURLService, systemConfig.Gallery.IsSignedURLsEnabled())
 	strukturUploadHandler := strukturhandler.NewStrukturUploadHandler(fileStore, mainOtel.Log)
 	desaHandler := desahandler.NewDesaHandler(desaService)

@@ -9,13 +9,14 @@ import (
 
 	"webdesa/api/interface/http/middleware"
 	"webdesa/api/pkg/response"
-	"webdesa/api/usecase/ppid"
 	galleryuc "webdesa/api/usecase/gallery"
+	"webdesa/api/usecase/ppid"
 
 	"github.com/ggicci/httpin"
 	"github.com/go-chi/chi/v5"
 
-	"webdesa/api/pkg/handlerutil")
+	"webdesa/api/pkg/handlerutil"
+)
 
 // PPIDHandler handles HTTP requests for PPID (public information disclosure) management operations.
 // It accepts the PPID service from the usecase layer as a dependency.
@@ -72,11 +73,27 @@ type PPIDResponse struct {
 	CategoryID    *string                `json:"category_id,omitempty"`
 	Category      *response.CategoryInfo `json:"category,omitempty"`
 	Description   *string                `json:"description,omitempty"`
-	Document   *response.MediaInfo `json:"document,omitempty"`
-	Thumbnail  *response.MediaInfo `json:"thumbnail,omitempty"`
+	Document      *response.MediaInfo    `json:"document,omitempty"`
+	Thumbnail     *response.MediaInfo    `json:"thumbnail,omitempty"`
 	PublicationAt *string                `json:"publication_at"` // ISO 8601 format
 	CreatedAt     string                 `json:"created_at"`     // ISO 8601 format
 	UpdatedAt     string                 `json:"updated_at"`     // ISO 8601 format
+}
+
+// PPIDResponsePublic represents the response for PPID data on public
+// endpoints. Citizens browse metadata + thumbnail preview only — the
+// document binary is delivered exclusively via the approval email's
+// signed link (see feature-docs/ppid/concept.md).
+type PPIDResponsePublic struct {
+	ID            string                 `json:"id"`
+	Title         string                 `json:"title"`
+	CategoryID    *string                `json:"category_id,omitempty"`
+	Category      *response.CategoryInfo `json:"category,omitempty"`
+	Description   *string                `json:"description,omitempty"`
+	Thumbnail     *response.MediaInfo    `json:"thumbnail,omitempty"`
+	PublicationAt *string                `json:"publication_at"`
+	CreatedAt     string                 `json:"created_at"`
+	UpdatedAt     string                 `json:"updated_at"`
 }
 
 // PPIDResponseTruncated represents the response for PPID data in list endpoints
@@ -87,8 +104,7 @@ type PPIDResponseTruncated struct {
 	CategoryID    *string                `json:"category_id,omitempty"`
 	Category      *response.CategoryInfo `json:"category,omitempty"`
 	Description   *string                `json:"description"` // Truncated to ~100 words (500 chars) with "..." suffix, always included
-	Document   *response.MediaInfo `json:"document,omitempty"`
-	Thumbnail  *response.MediaInfo `json:"thumbnail,omitempty"`
+	Thumbnail     *response.MediaInfo    `json:"thumbnail,omitempty"`
 	PublicationAt *string                `json:"publication_at"`
 	CreatedAt     string                 `json:"created_at"`
 	UpdatedAt     string                 `json:"updated_at"`
@@ -102,8 +118,8 @@ type PPIDResponsePrivate struct {
 	CategoryID    *string                `json:"category_id,omitempty"`
 	Category      *response.CategoryInfo `json:"category,omitempty"`
 	PublicationAt *string                `json:"publication_at"`
-	Document   *response.MediaInfo `json:"document,omitempty"`
-	Thumbnail  *response.MediaInfo `json:"thumbnail,omitempty"`
+	Document      *response.MediaInfo    `json:"document,omitempty"`
+	Thumbnail     *response.MediaInfo    `json:"thumbnail,omitempty"`
 	CreatedAt     string                 `json:"created_at"`
 	UpdatedAt     string                 `json:"updated_at"`
 }
@@ -175,14 +191,14 @@ type PPIDRequestPaginatedResponse struct {
 // @Router       /ppid [post]
 func (h *PPIDHandler) CreatePPID(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Title             string       `in:"form=title" validate:"required,min=1"`
-		Category          *string      `in:"form=category"`
-		Description       *string      `in:"form=description"`
-		PublicationAt     *string      `in:"form=publication_at"`
-		Document          *httpin.File `in:"form=document"`
-		Thumbnail         *httpin.File `in:"form=thumbnail"`
-		DocumentMediaID   *string      `in:"form=document_media_id"`
-		ThumbnailMediaID  *string      `in:"form=thumbnail_media_id"`
+		Title            string       `in:"form=title" validate:"required,min=1"`
+		Category         *string      `in:"form=category"`
+		Description      *string      `in:"form=description"`
+		PublicationAt    *string      `in:"form=publication_at"`
+		Document         *httpin.File `in:"form=document"`
+		Thumbnail        *httpin.File `in:"form=thumbnail"`
+		DocumentMediaID  *string      `in:"form=document_media_id"`
+		ThumbnailMediaID *string      `in:"form=thumbnail_media_id"`
 	}
 
 	if err := httpin.DecodeTo(r, &input); err != nil {
@@ -343,7 +359,7 @@ func (h *PPIDHandler) ListPPID(w http.ResponseWriter, r *http.Request) {
 			Title:         p.Title,
 			CategoryID:    p.Category,
 			Category:      buildCategoryInfo(p.Category, p.CategoryName),
-					Document:      h.ppidMediaFor(p.DocumentMediaID),
+			Document:      h.ppidMediaFor(p.DocumentMediaID),
 			Thumbnail:     h.ppidMediaFor(p.ThumbnailMediaID),
 			PublicationAt: formatTimePtr(p.PublicationAt),
 			CreatedAt:     p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
@@ -825,7 +841,6 @@ func (h *PPIDHandler) ListPPIDPublic(w http.ResponseWriter, r *http.Request) {
 			Title:         p.Title,
 			CategoryID:    p.Category,
 			Category:      buildCategoryInfo(p.Category, p.CategoryName),
-					Document:      h.ppidMediaFor(p.DocumentMediaID),
 			Thumbnail:     h.ppidMediaFor(p.ThumbnailMediaID),
 			Description:   truncateDescription(p.Description),
 			PublicationAt: formatTimePtr(p.PublicationAt),
@@ -873,12 +888,11 @@ func (h *PPIDHandler) GetPPIDPublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := PPIDResponse{
+	resp := PPIDResponsePublic{
 		ID:            p.ID,
 		Title:         p.Title,
 		CategoryID:    p.Category,
 		Category:      buildCategoryInfo(p.Category, p.CategoryName),
-		Document:      h.ppidMediaFor(p.DocumentMediaID),
 		Thumbnail:     h.ppidMediaFor(p.ThumbnailMediaID),
 		Description:   p.Description,
 		PublicationAt: formatTimePtr(p.PublicationAt),

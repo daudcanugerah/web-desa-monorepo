@@ -10512,6 +10512,9 @@ const docTemplate = `{
                 "media_id": {
                     "type": "string"
                 },
+                "thumbnail_url": {
+                    "type": "string"
+                },
                 "url": {
                     "type": "string"
                 }
