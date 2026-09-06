@@ -160,19 +160,9 @@
           </section>
 
           <div class="flex flex-wrap gap-3">
-            <a
-              v-if="doc(selectedPPID)"
-              :href="doc(selectedPPID)"
-              target="_blank"
-              rel="noopener"
-              class="inline-flex items-center px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
-            >
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              Unduh Dokumen
-            </a>
             <button
               @click="openRequestDialog"
-              class="inline-flex items-center px-5 py-2.5 bg-white border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 rounded-lg font-medium transition-colors"
+              class="inline-flex items-center px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
               Minta Dokumen
@@ -246,7 +236,7 @@
 
 <script>
 import { ref, onMounted, computed, watch } from 'vue'
-import { getPublicPPIDList, getPublicPPIDById, createPPIDRequest, thumbnailUrl, documentUrl } from '../services/desaService'
+import { getPublicPPIDList, getPublicPPIDById, createPPIDRequest, thumbnailUrl } from '../services/desaService'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
 import EmptyState from '../components/common/EmptyState.vue'
 import SearchInput from '../components/common/SearchInput.vue'
@@ -324,7 +314,6 @@ export default {
     const handleImageError = (event) => { event.target.style.display = 'none' }
 
     const thumb = (item) => thumbnailUrl(item)
-    const doc = (item) => documentUrl(item)
 
     const stripHtml = (html) => {
       if (!html) return ''
@@ -502,7 +491,6 @@ export default {
       formatDate,
       handleImageError,
       thumb,
-      doc,
       stripHtml,
       sanitizedDescription,
       viewDetail,

@@ -36,26 +36,28 @@ export const mediaUrl = (item, variant = 'single') => {
   if (!item) return ''
   const m = item.media
   if (variant === 'array') {
-    if (Array.isArray(m) && m.length > 0) return m[0]?.url || m[0]?.thumbnail_url || ''
+    if (Array.isArray(m) && m.length > 0) return resolveGalleryAssetUrl(m[0]?.url || m[0]?.thumbnail_url || '')
     if (Array.isArray(item.images) && item.images.length > 0) return item.images[0]
     return ''
   }
-  if (m && !Array.isArray(m)) return m.url || m.thumbnail_url || ''
+  if (m && !Array.isArray(m)) return resolveGalleryAssetUrl(m.url || m.thumbnail_url || '')
   return item.image_url || item.profile_image_url || ''
 }
 
 export const thumbnailUrl = (item) => {
   if (!item) return ''
   const t = item.thumbnail
-  if (t && typeof t === 'object') return t.url || t.thumbnail_url || ''
-  return item.thumbnail_url || ''
+  // Signed media URLs are relative (/api/v1/media/...?jwt=...); resolve
+  // them against the API base so they don't hit the SPA origin.
+  if (t && typeof t === 'object') return resolveGalleryAssetUrl(t.url || t.thumbnail_url || '')
+  return resolveGalleryAssetUrl(item.thumbnail_url || '')
 }
 
 export const documentUrl = (item) => {
   if (!item) return ''
   const d = item.document
-  if (d && typeof d === 'object') return d.url || ''
-  return item.document_url || ''
+  if (d && typeof d === 'object') return resolveGalleryAssetUrl(d.url || '')
+  return resolveGalleryAssetUrl(item.document_url || '')
 }
 
 export const decodeJwtExp = (token) => {
@@ -274,6 +276,15 @@ export const resolveGalleryAssetUrl = (value) => {
   const str = String(value).trim()
   if (!str) return ''
   if (/^https?:\/\//i.test(str)) return str
+  if (str.startsWith('/api/')) {
+    // Path already carries the /api/v1 prefix (signed media URLs) —
+    // resolve against the API origin to avoid double-prefixing.
+    try {
+      return `${new URL(API_BASE_URL).origin}${str}`
+    } catch {
+      return `${API_BASE_URL.replace(/\/+$/, '')}${str}`
+    }
+  }
   if (str.startsWith('/')) return `${API_BASE_URL.replace(/\/+$/, '')}${str}`
   return str
 }
