@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"webdesa/api/domain/ppid"
-	galleryUsecase "webdesa/api/usecase/gallery"
 	"webdesa/api/pkg/clock"
 	"webdesa/api/pkg/pagination"
+	galleryUsecase "webdesa/api/usecase/gallery"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -655,9 +655,9 @@ func (s *Service) ApproveRequest(ctx context.Context, requestID string, adminUse
 	// Legacy path: when SignedURLService is nil (deprecation window or
 	// older tests), fall back to GenerateAccessToken + the old route.
 	var (
-		downloadLink    string
-		expirationTime  string
-		tokenExpiresAt  time.Time
+		downloadLink   string
+		expirationTime string
+		tokenExpiresAt time.Time
 	)
 	if s.signedURL != nil {
 		if ppidDoc.DocumentMediaID == nil || *ppidDoc.DocumentMediaID == "" {
@@ -679,24 +679,12 @@ func (s *Service) ApproveRequest(ctx context.Context, requestID string, adminUse
 	tokenExpiresAt = now.Add(1 * time.Hour)
 	expirationTime = tokenExpiresAt.Format("2006-01-02T15:04:05Z07:00")
 
-	// Persist the approval BEFORE sending the email so the database is
-	// never out of sync with reality: if the email fails after this
-	// point the request is still marked approved and the operator can
-	// resend. If we sent the email first (previous behavior) and the DB
-	// update then failed, the requester would receive a download link for
-	// a request that the system still shows as pending.
-	req.Status = "approved"
-	req.ApprovedAt = &now
-	req.ApprovedBy = &adminUserID
-
-	if err := s.repo.UpdateRequest(ctx, req); err != nil {
-		return nil, fmt.Errorf("failed to update request: %w", err)
-	}
-
-	// Try to send the approval email. A failure here leaves the DB in
-	// the approved state (above) and surfaces to the operator; the
-	// requester simply does not receive the download link until the
-	// operator resends (TODO: add /ppid/requests/{id}/resend-email).
+	// Send the approval email BEFORE persisting the approval. On SMTP
+	// failure the request stays pending and the operator can simply retry
+	// approve. The accepted trade-off (see feature-docs/ppid/concept.md):
+	// if the DB update fails after a successful send, the requester holds
+	// a link for a request still shown as pending — retrying approve
+	// re-sends the email with a fresh link.
 	emailInput := SendApprovalEmailInput{
 		RequesterEmail:      req.RequesterEmail,
 		RequesterName:       req.RequesterName,
@@ -709,7 +697,17 @@ func (s *Service) ApproveRequest(ctx context.Context, requestID string, adminUse
 	}
 
 	if err := s.emailService.SendApprovalEmail(ctx, emailInput); err != nil {
-		return nil, fmt.Errorf("request approved but email send failed (resend required): %w", err)
+		return nil, fmt.Errorf("failed to send approval email: %w", err)
+	}
+
+	// Email delivered — flip the request to approved. `now` was captured
+	// above when the 1h token expiry was computed.
+	req.Status = "approved"
+	req.ApprovedAt = &now
+	req.ApprovedBy = &adminUserID
+
+	if err := s.repo.UpdateRequest(ctx, req); err != nil {
+		return nil, fmt.Errorf("email sent but failed to update request: %w", err)
 	}
 
 	return req, nil

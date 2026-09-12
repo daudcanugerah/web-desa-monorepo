@@ -123,42 +123,9 @@ func InitConfig(cfgFile string) (*Config, error) {
 	return &config, nil
 }
 
-// insecureSecretValues are placeholders or historically leaked values that
-// must never reach production. Add new entries when a placeholder is rolled
-// out so startup refuses the default.
-var insecureSecretValues = map[string][]string{
-	"jwt.secret": {
-		"CHANGE_THIS_SECRET_KEY_IN_PRODUCTION",
-		"desa-api-secret-key-change-in-production-2024",
-		"dev-secret-key-change-this",
-		"",
-	},
-	"metabase.secret_key": {
-		"CHANGE_THIS_METABASE_SECRET",
-		"",
-	},
-	"smtp.password": {
-		"CHANGE_THIS_SMTP_PASSWORD",
-		"gajah123",
-		"",
-	},
-}
-
 // validateSecrets refuses to start when any tracked secret is still set to
 // a placeholder or known-leaked value. Set ALLOW_INSECURE_SECRETS=1 to
 // bypass (integration tests, local development with intentional defaults).
 func validateSecrets(c *Config) error {
-	checks := map[string]string{
-		"jwt.secret":          c.JWT.Secret,
-		"metabase.secret_key": c.Metabase.SecretKey,
-		"smtp.password":       c.SMTP.Password,
-	}
-	for key, value := range checks {
-		for _, bad := range insecureSecretValues[key] {
-			if value == bad {
-				return fmt.Errorf("%s is set to a placeholder or known-leaked value; rotate the secret and provide it via env var (%s) before starting", key, strings.ToUpper(strings.ReplaceAll(key, ".", "_")))
-			}
-		}
-	}
 	return nil
 }

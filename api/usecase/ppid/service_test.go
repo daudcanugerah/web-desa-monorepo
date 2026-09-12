@@ -294,6 +294,51 @@ func TestApproveRequest(t *testing.T) {
 	assert.Equal(t, adminUserID, *approvedReq.ApprovedBy)
 }
 
+// TestApproveRequestEmailFailKeepsPending locks the documented approval
+// semantics (feature-docs/ppid/concept.md): the approval email must be
+// delivered before the row flips to approved. When SMTP fails the
+// operator gets an error and the request stays pending so approve can
+// simply be retried — it must never end up approved without an email.
+func TestApproveRequestEmailFailKeepsPending(t *testing.T) {
+	repo := newMockRepository()
+	fileStore := &mockFileStore{}
+	emailService := &mockEmailService{shouldFail: true, failError: errors.New("smtp connection refused")}
+	clk := &mockClock{now: time.Now()}
+	jwtSecret := "test-secret-key"
+	emailConfig := EmailConfig{
+		VillageName:  "Test Village",
+		SupportEmail: "support@test.com",
+		WebsiteURL:   "http://test.com",
+	}
+	service := NewServiceWithEmail(repo, fileStore, emailService, clk, jwtSecret, emailConfig, &mockCategoryLookup{})
+
+	ppidID := "ppid-mailfail"
+	requestID := "req-mailfail"
+	adminUserID := "admin-123"
+
+	repo.ppidByID[ppidID] = &ppid.PPID{ID: ppidID, Title: "Test Document", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	repo.requestByID[requestID] = &ppid.PPIDRequest{
+		ID:             requestID,
+		PPIDId:         ppidID,
+		RequesterName:  "John Doe",
+		RequesterEmail: "john@example.com",
+		Status:         "pending",
+		CreatedAt:      time.Now(),
+	}
+
+	approvedReq, err := service.ApproveRequest(context.Background(), requestID, adminUserID)
+	require.Error(t, err)
+	assert.Nil(t, approvedReq)
+	assert.Contains(t, err.Error(), "failed to send approval email")
+
+	// The row must still be pending in the repository.
+	stored, ok := repo.requestByID[requestID]
+	require.True(t, ok)
+	assert.Equal(t, "pending", stored.Status)
+	assert.Nil(t, stored.ApprovedAt)
+	assert.Nil(t, stored.ApprovedBy)
+}
+
 // TestApproveRequestWithSignedURL exercises the Task 7.2 path: the
 // approve handler mints a JWT scoped to (scope=ppid, sub=ppid_request:<id>,
 // media_id=document_media_id) and returns a download link targeting the
