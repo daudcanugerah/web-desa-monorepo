@@ -34,8 +34,8 @@ const (
 // Validate checks if the Berita entity satisfies domain invariants.
 // This ensures the entity is in a valid state before persistence.
 //
-// Berita now stores only the gallery media id (Task 4.4). New rows
-// must always carry a media id.
+// The cover image is optional: ImageMediaID is nullable (see migration
+// 00045) and admins may publish articles without a cover image.
 func (b *Berita) Validate() error {
 	if b.ID == "" {
 		return fmt.Errorf("berita ID is required")
@@ -51,10 +51,6 @@ func (b *Berita) Validate() error {
 
 	if strings.TrimSpace(b.Category) == "" {
 		return fmt.Errorf("category is required")
-	}
-
-	if b.ImageMediaID == nil || strings.TrimSpace(*b.ImageMediaID) == "" {
-		return fmt.Errorf("berita image or media id is required")
 	}
 
 	if err := validateStatus(b.Status); err != nil {
