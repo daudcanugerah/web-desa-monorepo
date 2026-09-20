@@ -159,6 +159,22 @@ func (s *Service) deleteMediaIDs(ctx context.Context, ids []string) {
 	}
 }
 
+// mediaIDsNotIn returns the ids from old that are absent from keep — the
+// media actually dropped by an update.
+func mediaIDsNotIn(old, keep []string) []string {
+	keepSet := make(map[string]struct{}, len(keep))
+	for _, id := range keep {
+		keepSet[id] = struct{}{}
+	}
+	var out []string
+	for _, id := range old {
+		if _, ok := keepSet[id]; !ok {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
 // validateMediaRefs checks that every pre-uploaded media ref still exists
 // in the gallery. Refs were validated at upload time; this guards against
 // GC'd or hand-crafted ids.
@@ -374,9 +390,10 @@ func (s *Service) Update(ctx context.Context, id string, input UpdateUMKMInput) 
 		return nil, fmt.Errorf("failed to update umkm: %w", err)
 	}
 
-	// Only the IDs that the caller actually replaced are GC'd.
+	// GC only the IDs dropped by this update. The admin form resends
+	// unchanged images via existing_images, so those must survive.
 	if len(input.ImagesMediaIDs) > 0 || len(input.ImageFiles) > 0 {
-		s.deleteMediaIDs(ctx, oldMediaIDs)
+		s.deleteMediaIDs(ctx, mediaIDsNotIn(oldMediaIDs, u.ImagesMediaIDs))
 	}
 
 	return u, nil

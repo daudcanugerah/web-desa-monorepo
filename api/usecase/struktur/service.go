@@ -256,8 +256,9 @@ func (s *Service) Update(ctx context.Context, id string, input UpdateStrukturInp
 		return nil, fmt.Errorf("failed to update struktur: %w", err)
 	}
 
-	// Delete old image if a new one was uploaded successfully
-	if newMediaID != "" && oldMediaID != "" {
+	// Delete the old image only when it was actually replaced; the admin
+	// form resends the unchanged media id on every edit.
+	if newMediaID != "" && oldMediaID != "" && oldMediaID != newMediaID {
 		_ = s.fileStore.Delete(ctx, oldMediaID)
 	}
 

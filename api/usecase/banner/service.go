@@ -8,9 +8,9 @@ import (
 
 	"webdesa/api/domain/banner"
 	"webdesa/api/domain/bannercategory"
-	galleryUsecase "webdesa/api/usecase/gallery"
 	"webdesa/api/pkg/clock"
 	"webdesa/api/pkg/pagination"
+	galleryUsecase "webdesa/api/usecase/gallery"
 
 	"github.com/google/uuid"
 )
@@ -58,7 +58,7 @@ type CreateBannerInput struct {
 	ImageName   string
 	ImageSize   int64
 	ContentType string
-	Category    *string // Optional UUID FK to banner_categories
+	Category    *string                // Optional UUID FK to banner_categories
 	Metadata    map[string]interface{} // Optional metadata (e.g., HTML content)
 	// ImageMediaID references an image already uploaded via
 	// POST /banners/upload-media. Mutually exclusive with ImageFile.
@@ -74,7 +74,7 @@ type UpdateBannerInput struct {
 	ImageName   string
 	ImageSize   int64
 	ContentType string
-	Category    *string // Optional UUID FK to banner_categories (nil = leave unchanged)
+	Category    *string                // Optional UUID FK to banner_categories (nil = leave unchanged)
 	Metadata    map[string]interface{} // Optional metadata (e.g., HTML content)
 	// ImageMediaID references an image already uploaded via
 	// POST /banners/upload-media. Mutually exclusive with ImageFile.
@@ -279,7 +279,7 @@ func (s *Service) Update(ctx context.Context, id string, input UpdateBannerInput
 		return nil, fmt.Errorf("failed to update banner: %w", err)
 	}
 
-	if newMediaID != "" && oldMediaID != "" {
+	if newMediaID != "" && oldMediaID != "" && oldMediaID != newMediaID {
 		_ = s.fileStore.Delete(ctx, oldMediaID)
 	}
 

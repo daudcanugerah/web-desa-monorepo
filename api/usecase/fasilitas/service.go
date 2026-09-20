@@ -217,6 +217,22 @@ func (s *Service) saveImageFiles(ctx context.Context, inputs []ImageInput) ([]st
 	return ids, nil
 }
 
+// mediaIDsNotIn returns the ids from old that are absent from keep — the
+// media actually dropped by an update.
+func mediaIDsNotIn(old, keep []string) []string {
+	keepSet := make(map[string]struct{}, len(keep))
+	for _, id := range keep {
+		keepSet[id] = struct{}{}
+	}
+	var out []string
+	for _, id := range old {
+		if _, ok := keepSet[id]; !ok {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
 func toFileInputs(files []ImageInput) []galleryUsecase.FileInput {
 	out := make([]galleryUsecase.FileInput, len(files))
 	for i, f := range files {
@@ -382,9 +398,10 @@ func (s *Service) Update(ctx context.Context, id string, input UpdateFasilitasIn
 		return nil, fmt.Errorf("failed to update fasilitas: %w", err)
 	}
 
-	// Best-effort cleanup of the previous gallery media after a successful
-	// replacement.
-	for _, id := range oldMediaIDs {
+	// Best-effort cleanup of the gallery media actually dropped by this
+	// update. The admin form resends unchanged images via existing refs,
+	// so those must survive even though they were present before.
+	for _, id := range mediaIDsNotIn(oldMediaIDs, f.ImagesMediaIDs) {
 		_ = s.fileStore.Delete(ctx, id)
 	}
 

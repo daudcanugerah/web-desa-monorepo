@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"webdesa/api/domain/user"
-	galleryUsecase "webdesa/api/usecase/gallery"
 	"webdesa/api/pkg/clock"
 	"webdesa/api/pkg/pagination"
 	"webdesa/api/pkg/password"
+	galleryUsecase "webdesa/api/usecase/gallery"
 
 	"github.com/google/uuid"
 )
@@ -244,7 +244,9 @@ func (s *Service) UpdateProfileImageMediaID(ctx context.Context, userID, mediaID
 		return nil, fmt.Errorf("failed to update profile image: %w", err)
 	}
 
-	if oldMediaID != "" {
+	// Delete the previous avatar only when it actually changed; re-attaching
+	// the current media id must not delete it.
+	if oldMediaID != "" && oldMediaID != mediaID {
 		_ = s.fileStore.Delete(ctx, oldMediaID)
 	}
 

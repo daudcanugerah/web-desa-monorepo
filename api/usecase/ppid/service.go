@@ -412,15 +412,19 @@ func (s *Service) Update(ctx context.Context, id string, input UpdatePPIDInput) 
 		return nil, fmt.Errorf("failed to update ppid: %w", err)
 	}
 
-	// Delete old document if a new one was uploaded successfully
+	// Delete the old document only when it was actually replaced. The
+	// admin form resends unchanged media ids on every edit, so deleting by
+	// "a ref was provided" alone would destroy media still referenced.
 	if (input.DocumentFile != nil || (input.DocumentMediaID != nil && *input.DocumentMediaID != "")) &&
-		oldDocumentMediaID != nil && *oldDocumentMediaID != "" {
+		oldDocumentMediaID != nil && *oldDocumentMediaID != "" &&
+		(p.DocumentMediaID == nil || *oldDocumentMediaID != *p.DocumentMediaID) {
 		_ = s.fileStore.Delete(ctx, *oldDocumentMediaID)
 	}
 
-	// Delete old thumbnail if a new one was uploaded successfully
+	// Delete the old thumbnail only when it was actually replaced.
 	if (input.ThumbnailFile != nil || (input.ThumbnailMediaID != nil && *input.ThumbnailMediaID != "")) &&
-		oldThumbnailMediaID != nil && *oldThumbnailMediaID != "" {
+		oldThumbnailMediaID != nil && *oldThumbnailMediaID != "" &&
+		(p.ThumbnailMediaID == nil || *oldThumbnailMediaID != *p.ThumbnailMediaID) {
 		_ = s.fileStore.Delete(ctx, *oldThumbnailMediaID)
 	}
 
