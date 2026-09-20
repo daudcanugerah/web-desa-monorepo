@@ -12,7 +12,7 @@
             <div class="flex-shrink-0">
               <SafeImg
                 v-if="authStore.currentUser?.profile_image_url"
-                :src="authStore.currentUser.profile_image_url"
+                :src="resolveMediaUrl(authStore.currentUser.profile_image_url)"
                 :alt="authStore.currentUser.name"
                 circle
                 class="w-32 h-32 border-4 border-secondary-200 dark:border-secondary-700"
@@ -198,6 +198,7 @@ import { userService } from '../../services/user.service'
 import { useNotificationStore } from '../../stores/notification'
 import api from '../../services/api'
 import { formatLongDate } from '../../utils/dateFormat'
+import { resolveMediaUrl } from '../../utils/imageUrl'
 
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()

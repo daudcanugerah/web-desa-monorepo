@@ -90,7 +90,7 @@
           />
           <video
             v-else-if="m.media_type === 'video' && m.thumbnail_url"
-            :src="m.thumbnail_url"
+            :src="resolveMediaUrl(m.thumbnail_url)"
             class="w-full h-full object-cover"
             muted
             preload="metadata"
@@ -200,6 +200,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { resolveMediaUrl } from '../../../utils/imageUrl'
 import AppSearchInput from '../../../components/common/AppSearchInput.vue'
 import AppSelect from '../../../components/common/AppSelect.vue'
 import AppPagination from '../../../components/common/AppPagination.vue'

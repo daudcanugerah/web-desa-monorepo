@@ -22,7 +22,7 @@
         <template #photo="{ row }">
           <SafeImg
             v-if="row.profile_image_url"
-            :src="row.profile_image_url"
+            :src="resolveMediaUrl(row.profile_image_url)"
             :alt="row.name"
             circle
             class="w-10 h-10"
@@ -137,6 +137,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { resolveMediaUrl } from '../../utils/imageUrl'
 import AppTable from '../../components/common/AppTable.vue'
 import AppPagination from '../../components/common/AppPagination.vue'
 import AppButton from '../../components/common/AppButton.vue'

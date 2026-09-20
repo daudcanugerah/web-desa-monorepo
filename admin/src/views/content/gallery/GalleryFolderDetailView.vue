@@ -133,7 +133,7 @@
                 />
                 <video
                   v-else-if="m.media_type === 'video' && m.thumbnail_url"
-                  :src="m.thumbnail_url"
+                  :src="resolveMediaUrl(m.thumbnail_url)"
                   class="w-full h-full object-cover"
                   muted
                   preload="metadata"
@@ -278,6 +278,7 @@ import { galleryService } from '../../../services/gallery.service'
 import { useNotificationStore } from '../../../stores/notification'
 import { useConfirm } from '../../../composables/useConfirm'
 import { formatDate } from '../../../utils/dateFormat'
+import { resolveMediaUrl } from '../../../utils/imageUrl'
 
 const route = useRoute()
 const router = useRouter()

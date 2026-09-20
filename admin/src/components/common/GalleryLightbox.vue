@@ -112,6 +112,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { resolveMediaUrl } from '../../utils/imageUrl'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -128,7 +129,7 @@ const current = computed(() => props.list[index.value] || null)
 
 function srcFor(media) {
   if (!media) return ''
-  return media.content_url || media.thumbnail_url || ''
+  return resolveMediaUrl(media.content_url || media.thumbnail_url || '')
 }
 
 function formatBytes(bytes) {

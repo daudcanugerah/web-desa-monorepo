@@ -34,3 +34,16 @@ export function getImageUrl(imageNameOrUrl) {
 }
 
 export const API_BASE_URL = `${HOST}${API_V1_PREFIX}`
+
+// Resolve any media URL emitted by the API to an absolute URL on the API
+// origin. Signed media paths are relative (/api/v1/media/{id}/...?jwt=...)
+// and must never hit the SPA origin — the Vite dev server would answer with
+// index.html instead of the binary.
+export function resolveMediaUrl(value) {
+  if (!value) return ''
+  const str = String(value).trim()
+  if (!str) return ''
+  if (/^(https?:|blob:|data:)/i.test(str)) return str
+  if (str.startsWith('/')) return `${HOST}${str}`
+  return getImageUrl(str)
+}

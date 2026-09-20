@@ -45,7 +45,7 @@
           />
           <video
             v-else-if="m.media_type === 'video' && m.thumbnail_url"
-            :src="m.thumbnail_url"
+            :src="resolveMediaUrl(m.thumbnail_url)"
             class="w-full h-full object-cover"
             muted
             preload="metadata"
@@ -92,6 +92,7 @@ import AppModal from './AppModal.vue'
 import AppSearchInput from './AppSearchInput.vue'
 import AppSelect from './AppSelect.vue'
 import AppButton from './AppButton.vue'
+import { resolveMediaUrl } from '../../utils/imageUrl'
 import AppPagination from './AppPagination.vue'
 import SafeImg from './SafeImg.vue'
 import { galleryService } from '../../services/gallery.service'

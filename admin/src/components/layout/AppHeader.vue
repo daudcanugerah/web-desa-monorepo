@@ -30,7 +30,7 @@
         <!-- Avatar: image or initial -->
         <SafeImg
           v-if="authStore.currentUser?.profile_image_url"
-          :src="authStore.currentUser.profile_image_url"
+          :src="resolveMediaUrl(authStore.currentUser.profile_image_url)"
           :alt="authStore.currentUser.name"
           circle
           class="w-8 h-8"
@@ -87,6 +87,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../../stores/auth'
+import { resolveMediaUrl } from '../../utils/imageUrl'
 import { useUiStore } from '../../stores/ui'
 import LanguageSwitcher from '../common/LanguageSwitcher.vue'
 import ThemeToggle from '../common/ThemeToggle.vue'
