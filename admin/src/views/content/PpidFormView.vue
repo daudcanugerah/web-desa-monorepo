@@ -177,25 +177,19 @@ async function handleSubmit() {
       if (media.thumbnail?.media_id) thumbnailMediaId = media.thumbnail.media_id
     }
 
+    // POST and PUT are both multipart; attach the uploaded media ids.
+    const fd = new FormData()
+    fd.append('title', form.value.title)
+    if (categoryId) fd.append('category', categoryId)
+    if (form.value.description) fd.append('description', form.value.description)
+    if (publication_at) fd.append('publication_at', publication_at)
+    if (documentMediaId) fd.append('document_media_id', documentMediaId)
+    if (thumbnailMediaId) fd.append('thumbnail_media_id', thumbnailMediaId)
+
     if (isEdit.value) {
-      // PUT /ppid/{id} takes a JSON body.
-      const payload = { title: form.value.title }
-      if (categoryId) payload.category = categoryId
-      if (form.value.description) payload.description = form.value.description
-      if (publication_at) payload.publication_at = publication_at
-      if (documentMediaId) payload.document_media_id = documentMediaId
-      if (thumbnailMediaId) payload.thumbnail_media_id = thumbnailMediaId
-      await ppidService.update(route.params.id, payload)
+      await ppidService.update(route.params.id, fd)
       notificationStore.success('Dokumen diperbarui')
     } else {
-      // POST /ppid is multipart; attach the uploaded media ids.
-      const fd = new FormData()
-      fd.append('title', form.value.title)
-      if (categoryId) fd.append('category', categoryId)
-      if (form.value.description) fd.append('description', form.value.description)
-      if (publication_at) fd.append('publication_at', publication_at)
-      if (documentMediaId) fd.append('document_media_id', documentMediaId)
-      if (thumbnailMediaId) fd.append('thumbnail_media_id', thumbnailMediaId)
       await ppidService.create(fd)
       notificationStore.success('Dokumen ditambahkan')
     }

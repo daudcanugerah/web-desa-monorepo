@@ -72,12 +72,14 @@ import { useRoute, useRouter } from 'vue-router'
 import AppInput from '../../components/common/AppInput.vue'
 import AppButton from '../../components/common/AppButton.vue'
 import AppBackButton from '../../components/common/AppBackButton.vue'
+import AppCategoryPicker from '../../components/common/AppCategoryPicker.vue'
 import ImageUpload from '../../components/forms/ImageUpload.vue'
 import RichTextEditor from '../../components/forms/RichTextEditor.vue'
 import CategoryManagerModal from '../../components/common/CategoryManagerModal.vue'
 import { useDraftAutosave } from '../../composables/useDraftAutosave'
 import { newsService } from '../../services/news.service'
 import { useNotificationStore } from '../../stores/notification'
+import { formatRelative } from '../../utils/dateFormat'
 
 const route = useRoute()
 const router = useRouter()

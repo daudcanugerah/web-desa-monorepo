@@ -10,7 +10,12 @@ export const ppidService = {
         ? { 'Content-Type': 'multipart/form-data' }
         : { 'Content-Type': 'application/json' },
     }),
-  update: (id, payload) => api.put(`/ppid/${id}`, payload),
+  update: (id, payload) =>
+    api.put(`/ppid/${id}`, payload, {
+      headers: payload instanceof FormData
+        ? { 'Content-Type': 'multipart/form-data' }
+        : { 'Content-Type': 'application/json' },
+    }),
   delete: (id) => api.delete(`/ppid/${id}`),
   getCategories: () => api.get('/public/ppid/categories'),
   createCategory: (data) => api.post('/ppid/categories', data),
