@@ -58,6 +58,7 @@ services:
       - GALLERY_FFPROBE_PATH=ffprobe
       - GALLERY_VIDEO_THUMBNAIL_FRAME_SECONDS=1
     volumes:
+      - ./config.toml:/app/config.toml:ro
       - app_uploads:/app/uploads
       - app_backups:/app/backups
     depends_on:
