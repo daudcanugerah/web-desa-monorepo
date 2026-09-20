@@ -11,23 +11,24 @@ All HTTP routes, request/response shapes, validation, and RBAC for the berita (n
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/api/v1/public/berita/list` | Query: `q`, `category`, `since`, `until`, `page`, `limit`. List response omits `content`. |
-| GET | `/api/v1/public/berita/{id}` | |
+| GET | `/api/v1/public/berita/list` | Query: `q`, `category`, `since`, `until`, `page`, `limit`. Only `active` articles. List response omits `content`. |
+| GET | `/api/v1/public/berita/{id}` | 404 when the article is `inactive` |
 | GET | `/api/v1/public/berita/categories` | With `q` search for autocomplete |
 
 ### Admin (RBAC: `berita:read`)
 
 | Method | Path | Query |
 |---|---|---|
-| GET | `/api/v1/berita` | `q`, `category` (UUID), `since`, `until`, `sort`, `order`, `page`, `limit` |
+| GET | `/api/v1/berita` | `q`, `category` (UUID), `status` (`active`\|`inactive`), `since`, `until`, `sort`, `order`, `page`, `limit` |
 | GET | `/api/v1/berita/{id}` | |
 
 ### Admin (RBAC: `berita:write`)
 
 | Method | Path | Notes |
 |---|---|---|
-| POST | `/api/v1/berita` | Multipart: `title` (req), `content` (Quill delta JSON, req), `category` (UUID req), opt `image` XOR `image_media_id` |
-| PUT | `/api/v1/berita/{id}` | Multipart. Same mutex |
+| POST | `/api/v1/berita` | Multipart: `title` (req), `content` (Quill delta JSON, req), `category` (UUID req), opt `status` (default `active`), opt `image` XOR `image_media_id` |
+| PUT | `/api/v1/berita/{id}` | Multipart. Same mutex. Status is NOT changed here — use PATCH |
+| PATCH | `/api/v1/berita/{id}/status` | JSON `{status}` (`active`\|`inactive`) |
 | DELETE | `/api/v1/berita/{id}` | Returns **200 + message** |
 | POST | `/api/v1/berita/upload-media` | Quill media upload (see below) |
 | POST | `/api/v1/berita/categories` | Body `{name}` |
@@ -38,6 +39,7 @@ All HTTP routes, request/response shapes, validation, and RBAC for the berita (n
 ### Create / Update (multipart)
 
 - Fields: `title` (req, ≤255), `content` (Quill delta JSON, req), `category` (UUID, req)
+- Optional: `status` (`active`|`inactive`, Create only, defaults to `active`)
 - Optional: `image` (file) XOR `image_media_id` (UUID) — mutex enforced
 - Service cleans up uploaded file on failure; deletes old media after successful new save on Update
 
@@ -68,6 +70,7 @@ The legacy `tmp-` prefix and `processDeltaImages` move-on-save flow were deleted
   },
   "category_id": "uuid",
   "category": { "id": "uuid", "name": "string" },
+  "status": "active",
   "created_at": "RFC3339",
   "updated_at": "RFC3339"
 }
@@ -77,7 +80,7 @@ List endpoint omits `content`. Public `GetBeritaPublic` silently rewrites embedd
 
 ### List filters
 
-`q` (ILIKE on `title`), `category` (UUID), `since`/`until` (YYYY-MM-DD), `sort` (whitelist: `created_at`|`title`), `order` (whitelist: `asc`|`desc`), `page`, `limit`. Default ordering: `created_at DESC`.
+`q` (ILIKE on `title`), `category` (UUID), `status` (`active`|`inactive`), `since`/`until` (YYYY-MM-DD), `sort` (whitelist: `created_at`|`title`), `order` (whitelist: `asc`|`desc`), `page`, `limit`. Default ordering: `created_at DESC`. Public list always applies `status=active`.
 
 ### Delete response
 
@@ -92,6 +95,7 @@ Handler-level:
 - `title` required, ≤ 255
 - `content` required (Quill delta JSON)
 - `category` required, must be existing UUID
+- `status` optional on Create, `oneof active inactive`; PATCH body requires it
 - `image` XOR `image_media_id` mutex
 - `sort` whitelist: `created_at`|`title`
 - `order` whitelist: `asc`|`desc`
@@ -101,6 +105,7 @@ Domain-level (`domain/berita.Validate()`):
 - `Title` required, ≤ 255
 - `Content` required
 - `Category` required UUID
+- `Status` must be `active` or `inactive`
 
 ## RBAC
 

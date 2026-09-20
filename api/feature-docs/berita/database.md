@@ -14,10 +14,11 @@ Schema for `berita` (articles) and `berita_categories`. Media lives in the galle
 | `00027` | creates `berita_categories`; seeds `"Lainnya"` |
 | `00029` | converts `berita.category` to UUID FK → `berita_categories(id)` ON DELETE RESTRICT |
 | `00045_drop_legacy_upload_columns.sql` | drops `berita.image_url` |
+| `00048_add_status_to_berita.sql` | adds `status` (`active`\|`inactive`, default `active`) + index |
 
 ## Tables
 
-### `berita` (migrations 00007, 00018, 00027, 00029, 00045)
+### `berita` (migrations 00007, 00018, 00027, 00029, 00045, 00048)
 
 | Column | Type | Null | Notes |
 |---|---|---|---|
@@ -26,6 +27,7 @@ Schema for `berita` (articles) and `berita_categories`. Media lives in the galle
 | `content` | TEXT | NO | Quill delta JSON |
 | `image_media_id` | UUID | YES | FK → `media(id)` ON DELETE SET NULL, nullable — replaces `image_url` (dropped 00045) |
 | `category` | UUID | NO | FK → `berita_categories(id)` ON DELETE RESTRICT |
+| `status` | VARCHAR(20) | NO | `active`\|`inactive`, default `active`, CHECK constraint |
 | `created_at` | TIMESTAMP | NO | indexed DESC |
 | `updated_at` | TIMESTAMP | NO | |
 
@@ -46,6 +48,8 @@ Schema for `berita` (articles) and `berita_categories`. Media lives in the galle
 |---|---|
 | `berita_categories_name_key` (UNIQUE) | `berita_categories(name)` |
 | `idx_berita_created_at` (DESC) | `berita(created_at)` |
+| `idx_berita_category_created_at` | `berita(category, created_at DESC)` (00047) |
+| `idx_berita_status_created_at` | `berita(status, created_at DESC)` (00048) |
 
 ## Seeds
 

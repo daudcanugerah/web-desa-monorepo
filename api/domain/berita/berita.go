@@ -16,12 +16,20 @@ type Berita struct {
 	ID           string    `db:"id"`
 	Title        string    `db:"title"`
 	Content      string    `db:"content"`
-	Category     string    `db:"category"`      // FK to berita_categories.id (UUID)
+	Category     string    `db:"category"` // FK to berita_categories.id (UUID)
 	CategoryName *string   `db:"category_name"`
 	ImageMediaID *string   `db:"image_media_id"` // Gallery media UUID (preferred for new rows)
+	Status       string    `db:"status"`         // "active" or "inactive"
 	CreatedAt    time.Time `db:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at"`
 }
+
+// Status constants for berita publication states.
+// Only "active" articles are exposed through the public endpoints.
+const (
+	StatusActive   = "active"
+	StatusInactive = "inactive"
+)
 
 // Validate checks if the Berita entity satisfies domain invariants.
 // This ensures the entity is in a valid state before persistence.
@@ -47,6 +55,10 @@ func (b *Berita) Validate() error {
 
 	if b.ImageMediaID == nil || strings.TrimSpace(*b.ImageMediaID) == "" {
 		return fmt.Errorf("berita image or media id is required")
+	}
+
+	if err := validateStatus(b.Status); err != nil {
+		return err
 	}
 
 	if b.CreatedAt.IsZero() {
@@ -94,6 +106,15 @@ func validateImageURL(imageURL string) error {
 
 	if len(imageURL) > 500 {
 		return fmt.Errorf("image URL must not exceed 500 characters")
+	}
+
+	return nil
+}
+
+// validateStatus checks if the status is valid
+func validateStatus(status string) error {
+	if status != StatusActive && status != StatusInactive {
+		return fmt.Errorf("status must be either 'active' or 'inactive'")
 	}
 
 	return nil

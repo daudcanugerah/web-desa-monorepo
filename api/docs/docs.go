@@ -985,7 +985,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Paginated list. Query: q, category (UUID), since, until (YYYY-MM-DD), sort (created_at|title), order (asc|desc). RBAC: berita:read.",
+                "description": "Paginated list. Query: q, category (UUID), status (active|inactive), since, until (YYYY-MM-DD), sort (created_at|title), order (asc|desc). RBAC: berita:read.",
                 "produces": [
                     "application/json"
                 ],
@@ -1004,6 +1004,16 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category UUID",
                         "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "active",
+                            "inactive"
+                        ],
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
                         "in": "query"
                     },
                     {
@@ -1096,7 +1106,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Multipart: title (required), content (Quill delta JSON, required), category (UUID required), optional image or image_media_id (mutually exclusive). RBAC: berita:write.",
+                "description": "Multipart: title (required), content (Quill delta JSON, required), category (UUID required), status (optional, defaults to active), optional image or image_media_id (mutually exclusive). RBAC: berita:write.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -1128,6 +1138,16 @@ const docTemplate = `{
                         "name": "category",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "enum": [
+                            "active",
+                            "inactive"
+                        ],
+                        "type": "string",
+                        "description": "Publication status (active|inactive), default active",
+                        "name": "status",
+                        "in": "formData"
                     },
                     {
                         "type": "file",
@@ -1482,7 +1502,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Partial update — missing fields fall back to existing values. Optional image or image_media_id (mutually exclusive). RBAC: berita:write.",
+                "description": "Partial update — missing fields fall back to existing values. Optional image or image_media_id (mutually exclusive). Status is NOT changed here — use PATCH /berita/{id}/status. RBAC: berita:write.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -1615,6 +1635,83 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/berita/{id}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Toggle a news article between active and inactive. Inactive articles are hidden from the public endpoints. RBAC: berita:write.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "berita"
+                ],
+                "summary": "Update news status (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Berita UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New status (active|inactive)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/berita.BeritaResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/response.ErrorResponse"
                         }
@@ -5936,7 +6033,7 @@ const docTemplate = `{
         },
         "/public/berita/list": {
             "get": {
-                "description": "Public paginated list without content body.",
+                "description": "Public paginated list without content body. Only active articles are returned.",
                 "produces": [
                     "application/json"
                 ],
@@ -6020,7 +6117,7 @@ const docTemplate = `{
         },
         "/public/berita/{id}": {
             "get": {
-                "description": "Public full detail.",
+                "description": "Public full detail. Inactive articles return 404.",
                 "produces": [
                     "application/json"
                 ],
@@ -9698,6 +9795,9 @@ const docTemplate = `{
                 "media": {
                     "$ref": "#/definitions/response.MediaInfo"
                 },
+                "status": {
+                    "type": "string"
+                },
                 "title": {
                     "type": "string"
                 },
@@ -9743,6 +9843,9 @@ const docTemplate = `{
                 },
                 "media": {
                     "$ref": "#/definitions/response.MediaInfo"
+                },
+                "status": {
+                    "type": "string"
                 },
                 "title": {
                     "type": "string"

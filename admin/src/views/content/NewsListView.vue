@@ -5,6 +5,24 @@
       <AppButton variant="primary" @click="$router.push('/berita/create')">Tambah Berita</AppButton>
     </div>
 
+    <!-- Status filter -->
+    <div class="mb-4 inline-flex rounded-lg border border-secondary-200 dark:border-secondary-700 bg-white dark:bg-secondary-800 p-1" role="tablist" aria-label="Filter status berita">
+      <button
+        v-for="opt in statusOptions"
+        :key="opt.value"
+        type="button"
+        role="tab"
+        :aria-selected="statusFilter === opt.value"
+        class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
+        :class="statusFilter === opt.value
+          ? 'bg-primary-600 text-white'
+          : 'text-secondary-600 dark:text-secondary-300 hover:bg-secondary-100 dark:hover:bg-secondary-700'"
+        @click="setStatusFilter(opt.value)"
+      >
+        {{ opt.label }}
+      </button>
+    </div>
+
     <!-- Filters -->
     <div class="flex flex-wrap gap-3 mb-4 p-4 bg-secondary-100 dark:bg-secondary-800/50 rounded-lg">
       <AppSearchInput
@@ -44,6 +62,17 @@
           <AppBadge v-if="row.category?.name" variant="primary">{{ row.category.name }}</AppBadge>
           <span v-else-if="row.category_name" class="text-sm text-secondary-700 dark:text-secondary-200">{{ row.category_name }}</span>
           <span v-else class="text-secondary-400 dark:text-secondary-500 text-xs">—</span>
+        </template>
+
+        <template #status="{ row }">
+          <AppButton
+            size="sm"
+            :variant="row.status === 'active' ? 'success' : 'secondary'"
+            :loading="togglingId === row.id"
+            @click="toggleStatus(row)"
+          >
+            {{ row.status === 'active' ? 'Aktif' : 'Nonaktif' }}
+          </AppButton>
         </template>
 
         <template #updated_at="{ row }">
@@ -111,34 +140,49 @@ const { confirmDelete } = useConfirm()
 const columns = [
   { key: 'title', label: 'Judul' },
   { key: 'category', label: 'Kategori', width: '120px' },
+  { key: 'status', label: 'Status', width: '110px' },
   { key: 'created_at', label: 'Dibuat', width: '130px' },
   { key: 'updated_at', label: 'Diperbarui', width: '130px' },
   { key: 'actions', label: '', width: '140px' },
+]
+
+const statusOptions = [
+  { label: 'Semua', value: '' },
+  { label: 'Aktif', value: 'active' },
+  { label: 'Nonaktif', value: 'inactive' },
 ]
 
 const articles = ref([])
 const loading = ref(false)
 const pagination = ref({ page: 1, total_pages: 1 })
 const categories = ref([])
+const togglingId = ref(null)
 
-const { refs: urlRefs, syncToUrl, reset: resetUrlFilters } = useUrlFilters(['q', 'since', 'until', 'category'])
+const { refs: urlRefs, syncToUrl, reset: resetUrlFilters } = useUrlFilters(['q', 'since', 'until', 'category', 'status'])
 const search = urlRefs.q
 const dateFrom = urlRefs.since
 const dateTo = urlRefs.until
 const categoryFilter = urlRefs.category
+const statusFilter = urlRefs.status
 
-watch([search, dateFrom, dateTo, categoryFilter], () => syncToUrl())
+watch([search, dateFrom, dateTo, categoryFilter, statusFilter], () => syncToUrl())
 
-const hasFilters = computed(() => !!(search.value || dateFrom.value || dateTo.value || categoryFilter.value))
+const hasFilters = computed(() => !!(search.value || dateFrom.value || dateTo.value || categoryFilter.value || statusFilter.value))
 const emptyHint = computed(() => {
   const parts = []
   if (search.value) parts.push(`pencarian "${search.value}"`)
   if (categoryFilter.value) parts.push('kategori ini')
   if (dateFrom.value || dateTo.value) parts.push('rentang tanggal ini')
+  if (statusFilter.value) parts.push(statusFilter.value === 'active' ? 'status aktif' : 'status nonaktif')
   return `Tidak ada hasil untuk ${parts.join(', ')}.`
 })
 
 function onSearch() {
+  fetchNews(1)
+}
+
+function setStatusFilter(val) {
+  statusFilter.value = val
   fetchNews(1)
 }
 
@@ -155,6 +199,7 @@ async function fetchNews(page = 1) {
     if (dateFrom.value) params.since = dateFrom.value
     if (dateTo.value) params.until = dateTo.value
     if (categoryFilter.value) params.category = categoryFilter.value
+    if (statusFilter.value) params.status = statusFilter.value
     const res = await newsService.list(params)
     articles.value = res.data.berita
     pagination.value = res.data.pagination
@@ -187,6 +232,20 @@ async function handleDelete(article) {
     fetchNews(pagination.value.page)
   } catch (err) {
     notificationStore.error(err.response?.data?.error || 'Gagal menghapus berita')
+  }
+}
+
+async function toggleStatus(article) {
+  togglingId.value = article.id
+  const newStatus = article.status === 'active' ? 'inactive' : 'active'
+  try {
+    await newsService.updateStatus(article.id, newStatus)
+    article.status = newStatus
+    notificationStore.success(`Berita diatur ke ${newStatus === 'active' ? 'aktif' : 'nonaktif'}`)
+  } catch (err) {
+    notificationStore.error(err.response?.data?.error || 'Gagal memperbarui status')
+  } finally {
+    togglingId.value = null
   }
 }
 

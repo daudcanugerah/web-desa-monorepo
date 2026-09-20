@@ -21,6 +21,7 @@ Provide admins a Quill-authored news feed with cover images, category tagging, s
 - **`since` / `until` filters** accept `YYYY-MM-DD`.
 - **`GetBeritaPublic` rewrites embedded media paths** in content from `/api/v1/gallery/media/` → `/api/v1/public/berita/media/` so anonymous visitors can render embedded images.
 - **Public list endpoint omits `content`** — only the detail endpoint returns it.
+- **Publication status is `active` | `inactive`.** New articles default to `active`. Public list only returns `active` articles and `GetBeritaPublic` returns 404 for inactive ones. Admins toggle via `PATCH /berita/{id}/status`; status is not part of Create/Update payloads (Create accepts an optional `status`).
 - **`DeleteBerita` returns 200 + message** (not 204).
 - **Categories cannot be renamed.** No `Update` op exists — comment: *"intentionally no Update operation; to rename, delete and re-create"*.
 - **Category deletion is in-use-guarded** — returns 409 if any article references the category.

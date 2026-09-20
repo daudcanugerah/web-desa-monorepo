@@ -781,3 +781,89 @@ func TestBerita_List_SortByDate(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
+
+// TestBerita_StatusToggle verifies the active/inactive publication flow:
+// create defaults to active, PATCH toggles it, inactive articles are hidden
+// from public endpoints, and admins can filter by status.
+func TestBerita_StatusToggle(t *testing.T) {
+	ts := SetupTestServer(t)
+	defer ts.Cleanup(t)
+
+	ts.CreateTestUser(t, "Admin", "admin@test.com", "password123")
+	token := ts.GetAuthToken(t, "admin@test.com", "password123")
+	ts.AssignAdminRole(t, "admin@test.com")
+
+	catID := ts.CreateTestBeritaCategory(t, "Pengumuman")
+
+	resp, err := ts.MakeMultipartRequest("POST", "/api/v1/berita",
+		map[string]string{"title": "Status News", "content": "Body", "category": catID},
+		map[string][2]string{"image": {"cover.jpg", string(tinyJPEG())}},
+		token)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	body, err := parseJSONResponse(resp.Body)
+	require.NoError(t, err)
+	data := getDataField(body)
+	assert.Equal(t, "active", data["status"], "create must default to active")
+	beritaID := data["id"].(string)
+
+	// Toggle to inactive.
+	resp, err = ts.MakeRequest("PATCH", "/api/v1/berita/"+beritaID+"/status",
+		map[string]string{"status": "inactive"}, token)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	body, err = parseJSONResponse(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t, "inactive", getDataField(body)["status"])
+
+	// Public detail hides inactive articles.
+	resp, err = ts.MakeRequest("GET", "/api/v1/public/berita/"+beritaID, nil, "")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+
+	// Public list omits inactive articles.
+	resp, err = ts.MakeRequest("GET", "/api/v1/public/berita/list", nil, "")
+	require.NoError(t, err)
+	body, err = parseJSONResponse(resp.Body)
+	require.NoError(t, err)
+	list := getDataField(body)["berita"].([]interface{})
+	assert.Len(t, list, 0, "public list must exclude inactive articles")
+
+	// Admin list can filter inactive articles.
+	resp, err = ts.MakeRequest("GET", "/api/v1/berita?status=inactive", nil, token)
+	require.NoError(t, err)
+	body, err = parseJSONResponse(resp.Body)
+	require.NoError(t, err)
+	list = getDataField(body)["berita"].([]interface{})
+	require.Len(t, list, 1)
+	assert.Equal(t, beritaID, list[0].(map[string]interface{})["id"])
+
+	// Admin list filtered by active excludes it.
+	resp, err = ts.MakeRequest("GET", "/api/v1/berita?status=active", nil, token)
+	require.NoError(t, err)
+	body, err = parseJSONResponse(resp.Body)
+	require.NoError(t, err)
+	list = getDataField(body)["berita"].([]interface{})
+	assert.Len(t, list, 0)
+
+	// Toggle back to active → public detail visible again.
+	resp, err = ts.MakeRequest("PATCH", "/api/v1/berita/"+beritaID+"/status",
+		map[string]string{"status": "active"}, token)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	resp, err = ts.MakeRequest("GET", "/api/v1/public/berita/"+beritaID, nil, "")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	// Invalid status is rejected.
+	resp, err = ts.MakeRequest("PATCH", "/api/v1/berita/"+beritaID+"/status",
+		map[string]string{"status": "bogus"}, token)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	// Toggling a non-existent article returns 404.
+	resp, err = ts.MakeRequest("PATCH", "/api/v1/berita/00000000-0000-0000-0000-000000000000/status",
+		map[string]string{"status": "active"}, token)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}

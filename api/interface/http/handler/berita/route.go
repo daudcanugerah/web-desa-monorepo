@@ -36,6 +36,7 @@ func RegisterRoutes(
 			r.Use(mw.RBAC("berita", "write"))
 			r.Post("/berita", h.CreateBerita)
 			r.Put("/berita/{id}", h.UpdateBerita)
+			r.Patch("/berita/{id}/status", h.UpdateBeritaStatus)
 			r.Delete("/berita/{id}", h.DeleteBerita)
 			r.Post("/berita/upload-media", up.UploadMedia)
 			r.Post("/berita/categories", cat.CreateBeritaCategory)

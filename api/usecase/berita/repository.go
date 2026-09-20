@@ -25,11 +25,12 @@ type Repository interface {
 	// Filters:
 	// - query: search in title or content (ILIKE)
 	// - category: filter by category (exact match)
+	// - status: filter by publication status ("active" or "inactive")
 	// - since: filter articles created after this date
 	// - until: filter articles created before this date
 	// - sort: column to sort by ("created_at" or "title"); defaults to "created_at"
 	// - order: "asc" or "desc"; defaults to "desc"
-	List(ctx context.Context, query *string, category *string, since *time.Time, until *time.Time, sort, order string, offset, limit int) ([]*berita.Berita, int, error)
+	List(ctx context.Context, query *string, category *string, status *string, since *time.Time, until *time.Time, sort, order string, offset, limit int) ([]*berita.Berita, int, error)
 
 	// Update updates an existing berita
 	Update(ctx context.Context, b *berita.Berita) error

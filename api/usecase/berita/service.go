@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"webdesa/api/domain/berita"
-	galleryUsecase "webdesa/api/usecase/gallery"
 	"webdesa/api/pkg/clock"
 	"webdesa/api/pkg/pagination"
+	galleryUsecase "webdesa/api/usecase/gallery"
 
 	"github.com/google/uuid"
 )
@@ -49,6 +49,7 @@ type CreateBeritaInput struct {
 	Title       string
 	Content     string
 	Category    string
+	Status      *string   // Optional; defaults to "active"
 	ImageFile   io.Reader // Optional
 	ImageName   string
 	ImageSize   int64
@@ -76,6 +77,7 @@ type UpdateBeritaInput struct {
 type ListBeritaInput struct {
 	Query    *string    // Optional search query (title or content)
 	Category *string    // Optional filter by category
+	Status   *string    // Optional filter by publication status ("active" or "inactive")
 	Since    *time.Time // Optional filter: articles created after this date
 	Until    *time.Time // Optional filter: articles created before this date
 	Sort     string     // Column to sort by: "created_at" or "title"; defaults to "created_at"
@@ -126,6 +128,11 @@ func (s *Service) Create(ctx context.Context, input CreateBeritaInput) (*berita.
 	// Create berita entity. Content is stored as supplied; the legacy
 	// processDeltaImages helper has been removed because raw /tmp/ images
 	// are gone — Quill deltas must reference media_ids, not URLs.
+	status := berita.StatusActive
+	if input.Status != nil && *input.Status != "" {
+		status = *input.Status
+	}
+
 	now := s.clock.Now()
 	b := &berita.Berita{
 		ID:           uuid.New().String(),
@@ -133,6 +140,7 @@ func (s *Service) Create(ctx context.Context, input CreateBeritaInput) (*berita.
 		Content:      input.Content,
 		Category:     input.Category,
 		ImageMediaID: imageMediaID,
+		Status:       status,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
@@ -183,7 +191,7 @@ func (s *Service) List(ctx context.Context, input ListBeritaInput) ([]*berita.Be
 	}
 
 	// Retrieve berita from repository with filters
-	beritaList, total, err := s.repo.List(ctx, input.Query, input.Category, input.Since, input.Until, input.Sort, input.Order, offset, validatedLimit)
+	beritaList, total, err := s.repo.List(ctx, input.Query, input.Category, input.Status, input.Since, input.Until, input.Sort, input.Order, offset, validatedLimit)
 	if err != nil {
 		return nil, pagination.Result{}, fmt.Errorf("failed to list berita: %w", err)
 	}
@@ -270,6 +278,33 @@ func (s *Service) Update(ctx context.Context, id string, input UpdateBeritaInput
 	// Delete old image if a new one was attached successfully
 	if newMediaID != "" && oldMediaID != "" && oldMediaID != newMediaID {
 		_ = s.fileStore.Delete(ctx, oldMediaID)
+	}
+
+	return b, nil
+}
+
+// UpdateStatus updates a berita's publication status.
+// Public endpoints only expose "active" articles, so toggling to
+// "inactive" effectively unpublishes the article without deleting it.
+// Returns concrete Berita struct.
+func (s *Service) UpdateStatus(ctx context.Context, id string, status string) (*berita.Berita, error) {
+	// Retrieve existing berita
+	b, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("berita not found: %w", err)
+	}
+
+	b.Status = status
+	b.UpdatedAt = s.clock.Now()
+
+	// Validate domain invariants
+	if err := b.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid berita data: %w", err)
+	}
+
+	// Persist changes
+	if err := s.repo.Update(ctx, b); err != nil {
+		return nil, fmt.Errorf("failed to update berita status: %w", err)
 	}
 
 	return b, nil

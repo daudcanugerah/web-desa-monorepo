@@ -36,8 +36,8 @@ func (r *BeritaRepository) Create(ctx context.Context, b *berita.Berita) error {
 	}
 
 	query := `
-		INSERT INTO berita (id, title, content, category, image_media_id, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+		INSERT INTO berita (id, title, content, category, image_media_id, status, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
 	`
 
 	_, err := r.db.ExecContext(ctx, query,
@@ -46,6 +46,7 @@ func (r *BeritaRepository) Create(ctx context.Context, b *berita.Berita) error {
 		b.Content,
 		b.Category,
 		b.ImageMediaID,
+		b.Status,
 	)
 	if err != nil {
 		return errtrace.Wrap(fmt.Errorf("failed to create berita: %w", err))
@@ -61,7 +62,7 @@ func (r *BeritaRepository) FindByID(ctx context.Context, id string) (*berita.Ber
 	var b berita.Berita
 
 	query := `
-		SELECT berita.id, berita.title, berita.content, berita.category, berita.image_media_id, berita.created_at, berita.updated_at,
+		SELECT berita.id, berita.title, berita.content, berita.category, berita.image_media_id, berita.status, berita.created_at, berita.updated_at,
 		       berita_categories.name AS category_name
 		FROM berita
 		LEFT JOIN berita_categories ON berita.category = berita_categories.id
@@ -83,7 +84,7 @@ func (r *BeritaRepository) FindByID(ctx context.Context, id string) (*berita.Ber
 // Returns berita slice, total count, and error
 // Uses ILIKE for search queries, BETWEEN for date range
 // Validates: Requirements 9.1, 9.2, 17.2, 20.5
-func (r *BeritaRepository) List(ctx context.Context, query *string, category *string, since *time.Time, until *time.Time, sort, order string, offset, limit int) ([]*berita.Berita, int, error) {
+func (r *BeritaRepository) List(ctx context.Context, query *string, category *string, status *string, since *time.Time, until *time.Time, sort, order string, offset, limit int) ([]*berita.Berita, int, error) {
 	// Build count query with filters
 	countQuery := `SELECT COUNT(*) FROM berita WHERE 1=1`
 	var countArgs []interface{}
@@ -99,6 +100,12 @@ func (r *BeritaRepository) List(ctx context.Context, query *string, category *st
 	if category != nil && *category != "" {
 		countQuery += fmt.Sprintf(` AND category = $%d`, argIndex)
 		countArgs = append(countArgs, *category)
+		argIndex++
+	}
+
+	if status != nil && *status != "" {
+		countQuery += fmt.Sprintf(` AND status = $%d`, argIndex)
+		countArgs = append(countArgs, *status)
 		argIndex++
 	}
 
@@ -123,7 +130,7 @@ func (r *BeritaRepository) List(ctx context.Context, query *string, category *st
 
 	// Build list query with filters
 	listQuery := `
-		SELECT berita.id, berita.title, berita.content, berita.category, berita.image_media_id, berita.created_at, berita.updated_at,
+		SELECT berita.id, berita.title, berita.content, berita.category, berita.image_media_id, berita.status, berita.created_at, berita.updated_at,
 		       berita_categories.name AS category_name
 		FROM berita
 		LEFT JOIN berita_categories ON berita.category = berita_categories.id
@@ -142,6 +149,12 @@ func (r *BeritaRepository) List(ctx context.Context, query *string, category *st
 	if category != nil && *category != "" {
 		listQuery += fmt.Sprintf(` AND berita.category = $%d`, argIndex)
 		listArgs = append(listArgs, *category)
+		argIndex++
+	}
+
+	if status != nil && *status != "" {
+		listQuery += fmt.Sprintf(` AND berita.status = $%d`, argIndex)
+		listArgs = append(listArgs, *status)
 		argIndex++
 	}
 
@@ -190,8 +203,8 @@ func (r *BeritaRepository) List(ctx context.Context, query *string, category *st
 func (r *BeritaRepository) Update(ctx context.Context, b *berita.Berita) error {
 	query := `
 		UPDATE berita
-		SET title = $1, content = $2, category = $3, image_media_id = $4, updated_at = NOW()
-		WHERE id = $5
+		SET title = $1, content = $2, category = $3, image_media_id = $4, status = $5, updated_at = NOW()
+		WHERE id = $6
 	`
 
 	result, err := r.db.ExecContext(ctx, query,
@@ -199,6 +212,7 @@ func (r *BeritaRepository) Update(ctx context.Context, b *berita.Berita) error {
 		b.Content,
 		b.Category,
 		b.ImageMediaID,
+		b.Status,
 		b.ID,
 	)
 	if err != nil {

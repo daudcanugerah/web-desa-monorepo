@@ -46,7 +46,7 @@ func (r *stubRepo) FindByID(ctx context.Context, id string) (*berita.Berita, err
 	return b, nil
 }
 
-func (r *stubRepo) List(ctx context.Context, query *string, category *string, since *time.Time, until *time.Time, sort string, order string, offset, limit int) ([]*berita.Berita, int, error) {
+func (r *stubRepo) List(ctx context.Context, query *string, category *string, status *string, since *time.Time, until *time.Time, sort string, order string, offset, limit int) ([]*berita.Berita, int, error) {
 	return nil, 0, nil
 }
 
@@ -199,6 +199,7 @@ func TestUpdateWithMediaRef(t *testing.T) {
 		Content:      "isi",
 		Category:     "cat-1",
 		ImageMediaID: &oldMedia,
+		Status:       berita.StatusActive,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}

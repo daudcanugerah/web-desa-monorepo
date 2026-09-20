@@ -139,6 +139,8 @@ definitions:
                 type: string
             media:
                 $ref: '#/definitions/response.MediaInfo'
+            status:
+                type: string
             title:
                 type: string
             updated_at:
@@ -170,6 +172,8 @@ definitions:
                 type: string
             media:
                 $ref: '#/definitions/response.MediaInfo'
+            status:
+                type: string
             title:
                 type: string
             updated_at:
@@ -1591,7 +1595,7 @@ paths:
                 - banner-upload
     /berita:
         get:
-            description: 'Paginated list. Query: q, category (UUID), since, until (YYYY-MM-DD), sort (created_at|title), order (asc|desc). RBAC: berita:read.'
+            description: 'Paginated list. Query: q, category (UUID), status (active|inactive), since, until (YYYY-MM-DD), sort (created_at|title), order (asc|desc). RBAC: berita:read.'
             parameters:
                 - description: Search query
                   in: query
@@ -1600,6 +1604,13 @@ paths:
                 - description: Category UUID
                   in: query
                   name: category
+                  type: string
+                - description: Filter by status
+                  enum:
+                    - active
+                    - inactive
+                  in: query
+                  name: status
                   type: string
                 - description: Start date YYYY-MM-DD
                   in: query
@@ -1666,7 +1677,7 @@ paths:
         post:
             consumes:
                 - multipart/form-data
-            description: 'Multipart: title (required), content (Quill delta JSON, required), category (UUID required), optional image or image_media_id (mutually exclusive). RBAC: berita:write.'
+            description: 'Multipart: title (required), content (Quill delta JSON, required), category (UUID required), status (optional, defaults to active), optional image or image_media_id (mutually exclusive). RBAC: berita:write.'
             parameters:
                 - description: Title
                   in: formData
@@ -1682,6 +1693,13 @@ paths:
                   in: formData
                   name: category
                   required: true
+                  type: string
+                - description: Publication status (active|inactive), default active
+                  enum:
+                    - active
+                    - inactive
+                  in: formData
+                  name: status
                   type: string
                 - description: Cover image
                   in: formData
@@ -1819,7 +1837,7 @@ paths:
         put:
             consumes:
                 - multipart/form-data
-            description: 'Partial update — missing fields fall back to existing values. Optional image or image_media_id (mutually exclusive). RBAC: berita:write.'
+            description: 'Partial update — missing fields fall back to existing values. Optional image or image_media_id (mutually exclusive). Status is NOT changed here — use PATCH /berita/{id}/status. RBAC: berita:write.'
             parameters:
                 - description: Berita UUID
                   in: path
@@ -1868,6 +1886,56 @@ paths:
             security:
                 - BearerAuth: []
             summary: Update news (admin)
+            tags:
+                - berita
+    /berita/{id}/status:
+        patch:
+            consumes:
+                - application/json
+            description: 'Toggle a news article between active and inactive. Inactive articles are hidden from the public endpoints. RBAC: berita:write.'
+            parameters:
+                - description: Berita UUID
+                  in: path
+                  name: id
+                  required: true
+                  type: string
+                - description: New status (active|inactive)
+                  in: body
+                  name: request
+                  required: true
+                  schema:
+                    additionalProperties: true
+                    type: object
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/berita.BeritaResponse'
+                "400":
+                    description: Bad Request
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "401":
+                    description: Unauthorized
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "403":
+                    description: Forbidden
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "404":
+                    description: Not Found
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "429":
+                    description: Too Many Requests
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+            security:
+                - BearerAuth: []
+            summary: Update news status (admin)
             tags:
                 - berita
     /berita/categories:
@@ -4758,7 +4826,7 @@ paths:
                 - banner
     /public/berita/{id}:
         get:
-            description: Public full detail.
+            description: Public full detail. Inactive articles return 404.
             parameters:
                 - description: Berita UUID
                   in: path
@@ -4838,7 +4906,7 @@ paths:
                 - berita-categories
     /public/berita/list:
         get:
-            description: Public paginated list without content body.
+            description: Public paginated list without content body. Only active articles are returned.
             parameters:
                 - default: 1
                   description: Page default(1)

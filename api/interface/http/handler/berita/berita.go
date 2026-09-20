@@ -8,9 +8,10 @@ import (
 	"github.com/ggicci/httpin"
 	"github.com/go-chi/chi/v5"
 
-	galleryuc "webdesa/api/usecase/gallery"
+	domainberita "webdesa/api/domain/berita"
 	"webdesa/api/pkg/response"
 	"webdesa/api/usecase/berita"
+	galleryuc "webdesa/api/usecase/gallery"
 
 	"webdesa/api/pkg/handlerutil"
 )
@@ -124,6 +125,7 @@ type BeritaResponse struct {
 	CategoryID *string                `json:"category_id,omitempty"`
 	Category   *response.CategoryInfo `json:"category,omitempty"`
 	Media      *response.MediaInfo    `json:"media,omitempty"`
+	Status     string                 `json:"status"`
 	CreatedAt  string                 `json:"created_at"` // ISO 8601 format
 	UpdatedAt  string                 `json:"updated_at"` // ISO 8601 format
 }
@@ -135,6 +137,7 @@ type BeritaListResponse struct {
 	CategoryID *string                `json:"category_id,omitempty"`
 	Category   *response.CategoryInfo `json:"category,omitempty"`
 	Media      *response.MediaInfo    `json:"media,omitempty"`
+	Status     string                 `json:"status"`
 	CreatedAt  string                 `json:"created_at"` // ISO 8601 format
 	UpdatedAt  string                 `json:"updated_at"` // ISO 8601 format
 }
@@ -147,13 +150,14 @@ type BeritaPaginatedResponse struct {
 
 // CreateBerita godoc
 // @Summary      Create news article (admin)
-// @Description  Multipart: title (required), content (Quill delta JSON, required), category (UUID required), optional image or image_media_id (mutually exclusive). RBAC: berita:write.
+// @Description  Multipart: title (required), content (Quill delta JSON, required), category (UUID required), status (optional, defaults to active), optional image or image_media_id (mutually exclusive). RBAC: berita:write.
 // @Tags         berita
 // @Accept       mpfd
 // @Produce      json
 // @Param        title      formData string true   "Title"
 // @Param        content    formData string true   "Quill delta JSON"
 // @Param        category   formData string true   "Category UUID"
+// @Param        status     formData string false  "Publication status (active|inactive), default active" Enums(active, inactive)
 // @Param        image	formData	file	false	"Cover image"
 // @Param        image_media_id  formData  string  false  "Gallery media UUID (mutually exclusive with image)"
 // @Success      201  {object} berita.BeritaResponse
@@ -170,6 +174,7 @@ func (h *BeritaHandler) CreateBerita(w http.ResponseWriter, r *http.Request) {
 		Title        string       `in:"form=title" validate:"required,min=1"`
 		Content      string       `in:"form=content" validate:"required,min=1"`
 		Category     string       `in:"form=category" validate:"required,min=1"`
+		Status       *string      `in:"form=status" validate:"omitempty,oneof=active inactive"`
 		Image        *httpin.File `in:"form=image"`
 		ImageMediaID *string      `in:"form=image_media_id"`
 	}
@@ -206,6 +211,7 @@ func (h *BeritaHandler) CreateBerita(w http.ResponseWriter, r *http.Request) {
 			Title:       input.Title,
 			Content:     input.Content,
 			Category:    input.Category,
+			Status:      input.Status,
 			ImageFile:   imageFile,
 			ImageName:   input.Image.Filename(),
 			ImageSize:   input.Image.Size(),
@@ -217,6 +223,7 @@ func (h *BeritaHandler) CreateBerita(w http.ResponseWriter, r *http.Request) {
 			Title:        input.Title,
 			Content:      input.Content,
 			Category:     input.Category,
+			Status:       input.Status,
 			ImageFile:    nil,
 			ImageMediaID: input.ImageMediaID,
 		}
@@ -237,6 +244,7 @@ func (h *BeritaHandler) CreateBerita(w http.ResponseWriter, r *http.Request) {
 		CategoryID: ptrStr(b.Category),
 		Category:   buildCategoryInfo(ptrStr(b.Category), b.CategoryName),
 		Media:      h.buildBeritaMedia(b.ImageMediaID, false),
+		Status:     b.Status,
 		CreatedAt:  b.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:  b.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
@@ -246,12 +254,13 @@ func (h *BeritaHandler) CreateBerita(w http.ResponseWriter, r *http.Request) {
 
 // ListBerita godoc
 // @Summary      List news (admin)
-// @Description  Paginated list. Query: q, category (UUID), since, until (YYYY-MM-DD), sort (created_at|title), order (asc|desc). RBAC: berita:read.
+// @Description  Paginated list. Query: q, category (UUID), status (active|inactive), since, until (YYYY-MM-DD), sort (created_at|title), order (asc|desc). RBAC: berita:read.
 // @Tags         berita
 // @Produce      json
 //
 //	@Param	q	query	string	false	"Search query"
 //	@Param	category	query	string	false	"Category UUID"
+//	@Param	status	query	string	false	"Filter by status"	Enums(active, inactive)
 //	@Param	since	query	string	false	"Start date YYYY-MM-DD"
 //	@Param	until	query	string	false	"End date YYYY-MM-DD"
 //	@Param	sort	query	string	false	"Sort field: created_at or title (default created_at)"
@@ -274,6 +283,7 @@ func (h *BeritaHandler) ListBerita(w http.ResponseWriter, r *http.Request) {
 		Limit    int     `in:"query=limit;default=10" validate:"min=1"`
 		Q        *string `in:"query=q"`
 		Category *string `in:"query=category"`
+		Status   *string `in:"query=status" validate:"omitempty,oneof=active inactive"`
 		Since    *string `in:"query=since"`
 		Until    *string `in:"query=until"`
 		Sort     *string `in:"query=sort"`
@@ -309,10 +319,11 @@ func (h *BeritaHandler) ListBerita(w http.ResponseWriter, r *http.Request) {
 	serviceInput := berita.ListBeritaInput{
 		Query:    input.Q,
 		Category: input.Category,
+		Status:   input.Status,
 		Since:    since,
 		Until:    until,
 		Sort:     "created_at", // default
-		Order:    "desc",      // default
+		Order:    "desc",       // default
 		Page:     input.Page,
 		Limit:    input.Limit,
 	}
@@ -342,6 +353,7 @@ func (h *BeritaHandler) ListBerita(w http.ResponseWriter, r *http.Request) {
 			CategoryID: ptrStr(b.Category),
 			Category:   buildCategoryInfo(ptrStr(b.Category), b.CategoryName),
 			Media:      h.buildBeritaMedia(b.ImageMediaID, false),
+			Status:     b.Status,
 			CreatedAt:  b.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			UpdatedAt:  b.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}
@@ -396,6 +408,7 @@ func (h *BeritaHandler) GetBerita(w http.ResponseWriter, r *http.Request) {
 		CategoryID: ptrStr(b.Category),
 		Category:   buildCategoryInfo(ptrStr(b.Category), b.CategoryName),
 		Media:      h.buildBeritaMedia(b.ImageMediaID, false),
+		Status:     b.Status,
 		CreatedAt:  b.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:  b.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
@@ -405,7 +418,7 @@ func (h *BeritaHandler) GetBerita(w http.ResponseWriter, r *http.Request) {
 
 // UpdateBerita godoc
 // @Summary      Update news (admin)
-// @Description  Partial update — missing fields fall back to existing values. Optional image or image_media_id (mutually exclusive). RBAC: berita:write.
+// @Description  Partial update — missing fields fall back to existing values. Optional image or image_media_id (mutually exclusive). Status is NOT changed here — use PATCH /berita/{id}/status. RBAC: berita:write.
 // @Tags         berita
 // @Accept       mpfd
 // @Produce      json
@@ -520,6 +533,72 @@ func (h *BeritaHandler) UpdateBerita(w http.ResponseWriter, r *http.Request) {
 		CategoryID: ptrStr(b.Category),
 		Category:   buildCategoryInfo(ptrStr(b.Category), b.CategoryName),
 		Media:      h.buildBeritaMedia(b.ImageMediaID, false),
+		Status:     b.Status,
+		CreatedAt:  b.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:  b.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	}
+
+	response.Success(w, http.StatusOK, resp)
+}
+
+// UpdateBeritaStatus godoc
+// @Summary      Update news status (admin)
+// @Description  Toggle a news article between active and inactive. Inactive articles are hidden from the public endpoints. RBAC: berita:write.
+// @Tags         berita
+// @Accept       json
+// @Produce      json
+// @Param        id       path  string  true  "Berita UUID"
+// @Param        request  body  map[string]interface{}  true  "New status (active|inactive)"
+// @Success      200  {object} berita.BeritaResponse
+// @Failure      400  {object} response.ErrorResponse
+// @Failure      401  {object} response.ErrorResponse
+// @Failure      403  {object} response.ErrorResponse
+// @Failure      404  {object} response.ErrorResponse
+// @Failure      429  {object} response.ErrorResponse
+// @Security     BearerAuth
+// @Router       /berita/{id}/status [patch]
+func (h *BeritaHandler) UpdateBeritaStatus(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		response.Error(w, http.StatusBadRequest, "Berita ID is required")
+		return
+	}
+
+	var req struct {
+		Payload struct {
+			Status string `json:"status" validate:"required,oneof=active inactive"`
+		} `in:"body=json"`
+	}
+	if err := httpin.DecodeTo(r, &req); err != nil {
+		response.Error(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if err := handlerutil.ValidateStruct(req.Payload); err != nil {
+		response.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Call berita service
+	b, err := h.beritaService.UpdateStatus(r.Context(), id, req.Payload.Status)
+	if err != nil {
+		if strings.Contains(err.Error(), "berita not found") {
+			response.Error(w, http.StatusNotFound, "Berita not found")
+			return
+		}
+		response.ErrorWithDetails(w, http.StatusInternalServerError, "Failed to update berita status", err)
+		return
+	}
+
+	// Build response
+	resp := BeritaResponse{
+		ID:         b.ID,
+		Title:      b.Title,
+		Content:    b.Content,
+		CategoryID: ptrStr(b.Category),
+		Category:   buildCategoryInfo(ptrStr(b.Category), b.CategoryName),
+		Media:      h.buildBeritaMedia(b.ImageMediaID, false),
+		Status:     b.Status,
 		CreatedAt:  b.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:  b.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
@@ -567,7 +646,7 @@ func (h *BeritaHandler) DeleteBerita(w http.ResponseWriter, r *http.Request) {
 
 // ListBeritaPublic godoc
 // @Summary      List news (public)
-// @Description  Public paginated list without content body.
+// @Description  Public paginated list without content body. Only active articles are returned.
 // @Tags         berita
 // @Produce      json
 //
@@ -608,10 +687,11 @@ func (h *BeritaHandler) ListBeritaPublic(w http.ResponseWriter, r *http.Request)
 	}
 
 	serviceInput := berita.ListBeritaInput{
-		Page:  input.Page,
-		Limit: input.Limit,
-		Sort:  "created_at",
-		Order: "desc",
+		Page:   input.Page,
+		Limit:  input.Limit,
+		Status: ptrStr(domainberita.StatusActive),
+		Sort:   "created_at",
+		Order:  "desc",
 	}
 	if input.Sort != nil && *input.Sort != "" {
 		serviceInput.Sort = *input.Sort
@@ -638,6 +718,7 @@ func (h *BeritaHandler) ListBeritaPublic(w http.ResponseWriter, r *http.Request)
 			CategoryID: ptrStr(b.Category),
 			Category:   buildCategoryInfo(ptrStr(b.Category), b.CategoryName),
 			Media:      h.buildBeritaMedia(b.ImageMediaID, true),
+			Status:     b.Status,
 			CreatedAt:  b.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			UpdatedAt:  b.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}
@@ -653,7 +734,7 @@ func (h *BeritaHandler) ListBeritaPublic(w http.ResponseWriter, r *http.Request)
 
 // GetBeritaPublic godoc
 // @Summary      Get news (public)
-// @Description  Public full detail.
+// @Description  Public full detail. Inactive articles return 404.
 // @Tags         berita
 // @Produce      json
 // @Param        id         path     string true   "Berita UUID"
@@ -682,6 +763,12 @@ func (h *BeritaHandler) GetBeritaPublic(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Inactive articles are unpublished; hide them from the public.
+	if b.Status != domainberita.StatusActive {
+		response.Error(w, http.StatusNotFound, "Berita not found")
+		return
+	}
+
 	resp := BeritaResponse{
 		ID:         b.ID,
 		Title:      b.Title,
@@ -689,6 +776,7 @@ func (h *BeritaHandler) GetBeritaPublic(w http.ResponseWriter, r *http.Request) 
 		CategoryID: ptrStr(b.Category),
 		Category:   buildCategoryInfo(ptrStr(b.Category), b.CategoryName),
 		Media:      h.buildBeritaMedia(b.ImageMediaID, true),
+		Status:     b.Status,
 		CreatedAt:  b.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:  b.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}

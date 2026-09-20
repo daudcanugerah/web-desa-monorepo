@@ -5,6 +5,7 @@ export const newsService = {
   get: (id) => api.get(`/berita/${id}`),
   create: (formData) => api.post('/berita', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   update: (id, formData) => api.put(`/berita/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  updateStatus: (id, status) => api.patch(`/berita/${id}/status`, { status }),
   delete: (id) => api.delete(`/berita/${id}`),
   uploadMedia: (file, type) => {
     const formData = new FormData()
