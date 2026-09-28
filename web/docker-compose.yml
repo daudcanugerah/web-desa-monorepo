@@ -1,0 +1,40 @@
+# Web (public site) — standalone stack.
+#
+#   docker compose up -d --build                      # build from ./Dockerfile
+#   WEB_IMAGE=ghcr.io/<owner>/<repo>/web:1.2.3 \
+#     docker compose up -d --no-build                 # run the published image
+#
+# VITE_* values are baked at build time. Copy .env.example to .env and adjust,
+# or pass them inline. The browser calls VITE_API_BASE_URL directly, so no
+# container network to the API is required.
+
+services:
+  web:
+    image: ${WEB_IMAGE:-desa-web:local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8081/api/v1}
+        VITE_METABASE_URL: ${VITE_METABASE_URL:-}
+        VITE_FEATURE_GALLERY_PUBLIC: ${VITE_FEATURE_GALLERY_PUBLIC:-false}
+        VITE_FEATURE_BERITA_SEARCH: ${VITE_FEATURE_BERITA_SEARCH:-false}
+        VITE_FEATURE_INFOGRAPHIC_SORT: ${VITE_FEATURE_INFOGRAPHIC_SORT:-false}
+    container_name: desa-web
+    # Runtime config — injected into /env.js at container start. Overrides the
+    # build-time ARG defaults without rebuilding the image.
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://api.desapalasari.my.id/api/v1}
+      VITE_METABASE_URL: ${VITE_METABASE_URL:-https://bi-embed.desapalasari.my.id}
+      VITE_FEATURE_GALLERY_PUBLIC: ${VITE_FEATURE_GALLERY_PUBLIC:-true}
+      VITE_FEATURE_BERITA_SEARCH: ${VITE_FEATURE_BERITA_SEARCH:-false}
+      VITE_FEATURE_INFOGRAPHIC_SORT: ${VITE_FEATURE_INFOGRAPHIC_SORT:-false}
+    ports:
+      - "${WEB_PORT:-8082}:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s

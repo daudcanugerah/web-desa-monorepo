@@ -122,6 +122,7 @@ import { useConfirm } from '../../composables/useConfirm'
 import { useUrlFilters } from '../../composables/useUrlFilters'
 import { useBulkSelect } from '../../composables/useBulkSelect'
 import { formatDate } from '../../utils/dateFormat'
+import { env } from '../../utils/runtimeEnv.js'
 
 const router = useRouter()
 const notificationStore = useNotificationStore()
@@ -145,7 +146,7 @@ const updatingRoleId = ref(null)
 
 async function loadAvailableRoles() {
   try {
-    const res = await fetch(import.meta.env.VITE_API_BASE_URL + '/roles', {
+    const res = await fetch(env.VITE_API_BASE_URL + '/roles', {
       headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
     })
     if (!res.ok) return

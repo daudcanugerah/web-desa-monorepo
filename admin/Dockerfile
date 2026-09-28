@@ -22,8 +22,19 @@ RUN npm run build
 # ---- Runtime stage ----
 FROM nginx:1.27-alpine AS runtime
 
+# Build-time defaults, available to the runtime env hook. A container started
+# with -e VITE_* overrides these without rebuilding.
+ARG VITE_API_BASE_URL=https://api.desapalasari.my.id
+ARG VITE_METABASE_URL=https://bi-embed.desapalasari.my.id
+
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_METABASE_URL=$VITE_METABASE_URL
+
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
+# Runtime env hook: regenerates /usr/share/nginx/html/env.js at container start.
+COPY docker-entrypoint.d/ /docker-entrypoint.d/
+RUN chmod +x /docker-entrypoint.d/*.sh
 
 EXPOSE 80
 

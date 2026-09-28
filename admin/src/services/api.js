@@ -1,8 +1,9 @@
 import axios from 'axios'
 import { getAccessToken, getRefreshToken, setTokens, clearTokens } from '../utils/storage'
 import { API_V1_PREFIX } from '../utils/imageUrl'
+import { env } from '../utils/runtimeEnv.js'
 
-const RAW_HOST = import.meta.env.VITE_API_BASE_URL
+const RAW_HOST = env.VITE_API_BASE_URL
 
 if (!RAW_HOST) {
   console.error(

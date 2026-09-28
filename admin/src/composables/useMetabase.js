@@ -1,9 +1,10 @@
 import { ref, onMounted } from 'vue'
+import { env } from '../utils/runtimeEnv.js'
 
 const isMetabaseInitialized = ref(false)
 
 export function useMetabase() {
-  const metabaseUrl = import.meta.env.VITE_METABASE_URL || 'http://localhost:3000'
+  const metabaseUrl = env.VITE_METABASE_URL || 'http://localhost:3000'
 
   function initializeMetabase() {
     if (isMetabaseInitialized.value) return Promise.resolve()

@@ -93,6 +93,14 @@ services:
         VITE_FEATURE_BERITA_SEARCH: "false"
         VITE_FEATURE_INFOGRAPHIC_SORT: "false"
     container_name: webdesa-web
+    # Runtime config: injected into /env.js at start, overriding the build args
+    # above without a rebuild. Override VITE_API_BASE_URL in .env to retarget.
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://api.desapalasari.my.id/api/v1}
+      VITE_METABASE_URL: ${VITE_METABASE_URL:-https://bi-embed.desapalasari.my.id}
+      VITE_FEATURE_GALLERY_PUBLIC: ${VITE_FEATURE_GALLERY_PUBLIC:-true}
+      VITE_FEATURE_BERITA_SEARCH: ${VITE_FEATURE_BERITA_SEARCH:-false}
+      VITE_FEATURE_INFOGRAPHIC_SORT: ${VITE_FEATURE_INFOGRAPHIC_SORT:-false}
     depends_on:
       - api
     networks:
@@ -106,6 +114,11 @@ services:
         VITE_API_BASE_URL: https://api.desapalasari.my.id
         VITE_METABASE_URL: ${VITE_METABASE_URL:-https://bi-embed.desapalasari.my.id}
     container_name: webdesa-admin
+    # Runtime config: injected into /env.js at start, overriding the build args
+    # above without a rebuild. VITE_API_BASE_URL is the API origin (host only).
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL_ADMIN:-https://api.desapalasari.my.id}
+      VITE_METABASE_URL: ${VITE_METABASE_URL:-https://bi-embed.desapalasari.my.id}
     depends_on:
       - api
     networks:

@@ -247,8 +247,9 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { getPublicInfographicList, getPublicInfographicWithToken, getInfographicEmbedUrl, decodeJwtExp } from '../services/desaService'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
 import { useDesaInfo } from '../composables/useDesaInfo'
+import { env } from '../utils/runtimeEnv.js'
 
-const METABASE_URL = import.meta.env.VITE_METABASE_URL || ''
+const METABASE_URL = env.VITE_METABASE_URL || ''
 
 const { desaInfo } = useDesaInfo()
 

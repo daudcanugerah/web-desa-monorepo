@@ -1,4 +1,6 @@
-const RAW_HOST = import.meta.env.VITE_API_BASE_URL
+import { env } from './runtimeEnv.js'
+
+const RAW_HOST = env.VITE_API_BASE_URL
 
 if (!RAW_HOST) {
   console.error(
