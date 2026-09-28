@@ -16,7 +16,7 @@
         <p class="text-gray-500">Memuat peta...</p>
       </div>
 
-      <div class="absolute top-4 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-2 md:hidden">
+      <div v-if="!selectedLocation" class="absolute top-4 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-2 md:hidden">
         <button
           @click="() => { showLegend = !showLegend; if (showLegend) showLayers = false }"
           class="bg-white rounded-lg shadow-md border border-gray-200 p-2.5 hover:bg-gray-50 transition-colors"
@@ -254,7 +254,19 @@
     </div>
 
     <Transition name="slide-up">
-      <div v-if="showSidebar && isMobile" class="absolute inset-x-0 bottom-0 z-[600] bg-white rounded-t-2xl shadow-xl max-h-[70vh] flex flex-col md:hidden">
+      <div
+        v-if="showSidebar && isMobile"
+        class="absolute inset-x-0 bottom-0 z-[600] bg-white rounded-t-2xl shadow-xl flex flex-col md:hidden"
+        :class="selectedLocation ? 'h-[65vh]' : 'max-h-[70vh]'"
+      >
+        <PlaceDetailPanel
+          v-if="selectedLocation"
+          :location="selectedLocation"
+          :has-coords="hasCoords(selectedLocation)"
+          @back="clearSelection"
+        />
+
+        <template v-else>
         <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
           <h2 class="text-sm font-semibold text-gray-900">Daftar Lokasi</h2>
           <button @click="showSidebar = false" class="p-1.5 hover:bg-gray-100 rounded-full">
@@ -317,27 +329,11 @@
                   <p class="text-[11px] text-gray-500 mt-0.5 truncate">{{ location.category }}</p>
                 </div>
                 <svg
-                  class="w-4 h-4 text-gray-300 flex-shrink-0 transition-transform"
-                  :class="{ 'rotate-90 text-emerald-500': selectedLocationId === location.id }"
+                  class="w-4 h-4 text-gray-300 flex-shrink-0"
                   fill="none" stroke="currentColor" viewBox="0 0 24 24"
                 >
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-              </div>
-
-              <div v-if="selectedLocationId === location.id" class="mt-2 pt-2 border-t border-emerald-100 space-y-1.5">
-                <img
-                  v-if="locationImage(location)"
-                  :src="locationImage(location)"
-                  :alt="location.name"
-                  class="w-full h-28 object-cover rounded-lg"
-                  loading="lazy"
-                />
-                <p v-if="location.description" class="text-[11px] text-gray-600 leading-relaxed">{{ location.description }}</p>
-                <p v-if="hasCoords(location)" class="text-[11px] text-gray-400">
-                  {{ Number(location.latitude).toFixed(5) }}, {{ Number(location.longitude).toFixed(5) }}
-                </p>
-                <p v-else class="text-[11px] text-amber-600">Koordinat belum tersedia</p>
               </div>
             </div>
           </div>
@@ -346,6 +342,7 @@
           <p class="text-[11px] text-gray-500 text-center">{{ filteredLocations.length }} lokasi</p>
           <p v-if="unmappedCount > 0" class="text-[11px] text-amber-600 text-center mt-0.5">{{ unmappedCount }} lokasi belum memiliki koordinat</p>
         </div>
+        </template>
       </div>
     </Transition>
   </div>
@@ -752,7 +749,11 @@ export default {
     const clearSelection = () => {
       const prev = selectedLocationId.value
       selectedLocationId.value = null
-      if (prev != null) refreshMarkerIcon(prev, { hovered: hoveredLocationId.value === prev })
+      if (prev != null) {
+        refreshMarkerIcon(prev, { hovered: hoveredLocationId.value === prev })
+        // Return to the list with the previously viewed entry in view.
+        scrollListTo(prev)
+      }
     }
 
     const selectLocation = (id) => {
@@ -760,11 +761,24 @@ export default {
       selectedLocationId.value = id
       if (prev != null && prev !== id) refreshMarkerIcon(prev, {})
       refreshMarkerIcon(id, { active: true })
-      // The panel swaps to the detail view; on mobile open the bottom sheet.
+      // On mobile the bottom sheet swaps to the place detail view.
+      if (isMobile.value) showSidebar.value = true
+    }
+
+    // Google-Maps style: on mobile the detail sheet covers the lower part of
+    // the map. Shift the target point down by a fraction of the viewport so the
+    // selected pin lands in the visible strip above the sheet. One animated
+    // setView (no follow-up pan) avoids interrupting the animation.
+    const centerOn = (latlng, zoom) => {
+      if (!map) return
       if (isMobile.value) {
-        showSidebar.value = true
-        scrollListTo(id)
+        const offset = Math.round(window.innerHeight * 0.28)
+        const point = map.project(latlng, zoom)
+        point.y += offset
+        map.setView(map.unproject(point, zoom), zoom, { animate: true })
+        return
       }
+      map.setView(latlng, zoom, { animate: true })
     }
 
     // Center the map on a location, using markercluster's zoomToShowLayer when
@@ -774,12 +788,11 @@ export default {
       const marker = locationMarkers[location.id]
       if (marker && markerCluster && typeof markerCluster.zoomToShowLayer === 'function') {
         markerCluster.zoomToShowLayer(marker, () => {
-          map.setView(marker.getLatLng(), Math.max(map.getZoom(), 18), { animate: true })
+          centerOn(marker.getLatLng(), Math.max(map.getZoom(), 18))
         })
         return
       }
-      const target = [Number(location.latitude), Number(location.longitude)]
-      map.setView(target, Math.max(map.getZoom(), 18), { animate: true })
+      centerOn([Number(location.latitude), Number(location.longitude)], Math.max(map.getZoom(), 18))
     }
 
     const focusOnMarker = (id) => {

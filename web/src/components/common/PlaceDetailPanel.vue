@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col h-full overflow-hidden">
-    <div class="relative flex-shrink-0">
+  <div class="flex flex-col h-full overflow-hidden bg-white">
+    <div class="relative flex-shrink-0 border-t-2 border-gray-200">
       <div class="h-36 bg-gray-100">
         <img
           v-if="images.length"

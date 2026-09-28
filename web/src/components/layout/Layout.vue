@@ -2,7 +2,7 @@
   <div class="flex flex-col min-h-screen">
     <TopBar />
     <Navbar />
-    <main class="flex-1 overflow-hidden">
+    <main class="flex-1 overflow-hidden relative z-0">
       <RouterView />
     </main>
     <Footer />

@@ -90,7 +90,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.API_KEY || github.token }}
+          password: ${{  github.token }}
 
       - name: Docker metadata
         id: meta
@@ -129,7 +129,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.API_KEY || github.token }}
+          password: ${{  github.token }}
 
       - name: Docker metadata
         id: meta
@@ -171,7 +171,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.API_KEY || github.token }}
+          password: ${{  github.token }}
 
       - name: Docker metadata
         id: meta
