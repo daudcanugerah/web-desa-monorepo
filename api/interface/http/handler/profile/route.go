@@ -6,11 +6,18 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// RegisterRoutes mounts CMS profile section endpoints.
-func RegisterRoutes(r chi.Router, h *ProfileHandler, mw *middleware.MiddlewareDeps, scope middleware.RouteScope) {
+// RegisterRoutes mounts CMS profile section + profile-category endpoints.
+func RegisterRoutes(
+	r chi.Router,
+	h *ProfileHandler,
+	cat *ProfileCategoryHandler,
+	mw *middleware.MiddlewareDeps,
+	scope middleware.RouteScope,
+) {
 	switch scope {
 	case middleware.ScopePublic:
 		r.Get("/public/profile/list", h.ListProfilePublic)
+		r.Get("/public/profile/categories", cat.ListProfileCategories)
 		r.Get("/public/profile/{id}", h.GetProfilePublic)
 	default:
 		// Read
@@ -26,6 +33,8 @@ func RegisterRoutes(r chi.Router, h *ProfileHandler, mw *middleware.MiddlewareDe
 			r.Post("/profile", h.CreateProfile)
 			r.Put("/profile/{id}", h.UpdateProfile)
 			r.Delete("/profile/{id}", h.DeleteProfile)
+			r.Post("/profile/categories", cat.CreateProfileCategory)
+			r.Delete("/profile/categories/{id}", cat.DeleteProfileCategory)
 		})
 	}
 }

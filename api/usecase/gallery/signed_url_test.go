@@ -18,7 +18,9 @@ func TestSignVerifyHappyPath(t *testing.T) {
 	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
 	svc := NewSignedURLService("test-secret-please-change-this-is-long-enough", fixedClock(now))
 	tok, err := svc.Sign(ScopePublic, "media-1", "anonymous", 0)
-	if err != nil { t.Fatalf("sign err: %v", err) }
+	if err != nil {
+		t.Fatalf("sign err: %v", err)
+	}
 	require.NoError(t, err)
 	assert.NotEmpty(t, tok)
 
@@ -49,7 +51,9 @@ func TestVerifyMediaIDMismatch(t *testing.T) {
 	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
 	svc := NewSignedURLService("test-secret-please-change-this-is-long-enough", fixedClock(now))
 	tok, err := svc.Sign(ScopePublic, "media-1", "anonymous", 0)
-	if err != nil { t.Fatalf("sign err: %v", err) }
+	if err != nil {
+		t.Fatalf("sign err: %v", err)
+	}
 	require.NoError(t, err)
 
 	_, err = svc.Verify(tok, "media-2")
@@ -60,7 +64,9 @@ func TestVerifyTamperedSignature(t *testing.T) {
 	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
 	svc := NewSignedURLService("test-secret-please-change-this-is-long-enough", fixedClock(now))
 	tok, err := svc.Sign(ScopePublic, "media-1", "anonymous", 0)
-	if err != nil { t.Fatalf("sign err: %v", err) }
+	if err != nil {
+		t.Fatalf("sign err: %v", err)
+	}
 	require.NoError(t, err)
 
 	// Flip the last char of the signature segment

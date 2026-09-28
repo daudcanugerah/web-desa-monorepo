@@ -35,4 +35,9 @@ type Repository interface {
 
 	// CountActivebanners returns the count of banners with status "active"
 	CountActiveBanners(ctx context.Context) (int, error)
+
+	// CountByImageMediaID returns how many banners still reference the given
+	// image media id. Used on delete so media shared by another banner is not
+	// removed (banners.image_media_id is ON DELETE SET NULL).
+	CountByImageMediaID(ctx context.Context, mediaID string) (int, error)
 }

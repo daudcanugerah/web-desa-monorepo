@@ -9,8 +9,6 @@
           </a>
           <span class="text-emerald-600">|</span>
           <a href="https://kemendesa.go.id" target="_blank" rel="noopener" class="hover:text-white transition-colors">Kemendes PDTT</a>
-          <span class="text-emerald-600 hidden md:inline">|</span>
-          <a href="#" class="hover:text-white transition-colors hidden md:inline">Portal Desa</a>
         </div>
 
         <div class="flex items-center gap-4 ml-auto">
@@ -19,11 +17,6 @@
             <span>{{ formattedDate }}</span>
           </span>
           <span class="text-emerald-600 hidden md:inline">|</span>
-          <button class="hover:text-white transition-colors inline-flex items-center gap-1" aria-label="Pencarian">
-            <Icon name="search" class="w-3 h-3" />
-            <span class="hidden sm:inline">Cari</span>
-          </button>
-          <span class="text-emerald-600">|</span>
           <button class="hover:text-white transition-colors inline-flex items-center gap-1 font-medium" aria-label="Bahasa">
             <Icon name="globe" class="w-3 h-3" />
             <span>ID</span>

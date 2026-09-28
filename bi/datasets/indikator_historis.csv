@@ -1,0 +1,94 @@
+dashboard,indikator,tahun,nilai,satuan
+Pemerintahan,Jumlah KK,2021,2195,keluarga
+Pemerintahan,Jumlah KK,2022,2319,keluarga
+Pemerintahan,Jumlah KK,2023,2392,keluarga
+Pemerintahan,Jumlah KK,2024,2187,keluarga
+Pemerintahan,Rukun Tetangga (RT),2021,32,unit
+Pemerintahan,Rukun Tetangga (RT),2022,32,unit
+Pemerintahan,Rukun Tetangga (RT),2023,32,unit
+Pemerintahan,Rukun Tetangga (RT),2024,32,unit
+Pemerintahan,Rukun Tetangga (RT),2025,32,unit
+Pemerintahan,Rukun Warga (RW),2021,7,unit
+Pemerintahan,Rukun Warga (RW),2022,7,unit
+Pemerintahan,Rukun Warga (RW),2023,7,unit
+Pemerintahan,Rukun Warga (RW),2024,7,unit
+Pemerintahan,Rukun Warga (RW),2025,7,unit
+Keagamaan,Masjid,2021,14,unit
+Keagamaan,Masjid,2022,14,unit
+Keagamaan,Masjid,2023,14,unit
+Keagamaan,Masjid,2024,14,unit
+Keagamaan,Mushola / Langgar,2021,21,unit
+Keagamaan,Mushola / Langgar,2022,21,unit
+Keagamaan,Mushola / Langgar,2023,21,unit
+Keagamaan,Mushola / Langgar,2024,21,unit
+Keagamaan,Penduduk Islam,2021,6760,jiwa
+Keagamaan,Penduduk Islam,2022,6754,jiwa
+Keagamaan,Penduduk Kristen,2021,24,jiwa
+Keagamaan,Penduduk Kristen,2022,19,jiwa
+Keagamaan,Penduduk Budha,2021,1,jiwa
+Keagamaan,Penduduk Budha,2022,1,jiwa
+Keagamaan,Nikah,2021,78,kejadian
+Keagamaan,Nikah,2022,36,kejadian
+Kesehatan,Tuna Rungu,2021,5,jiwa
+Kesehatan,Tuna Rungu,2022,5,jiwa
+Kesehatan,Tuna Netra,2021,8,jiwa
+Kesehatan,Tuna Netra,2022,8,jiwa
+Kesehatan,Tuna Grahita,2021,12,jiwa
+Kesehatan,Tuna Grahita,2022,12,jiwa
+Kesehatan,Tuna Daksa,2021,12,jiwa
+Kesehatan,Tuna Daksa,2022,12,jiwa
+Kesehatan,Tuna Wicara,2021,20,jiwa
+Kesehatan,Tuna Wicara,2022,20,jiwa
+Keluarga Berencana,Akseptor IUD,2021,11,akseptor
+Keluarga Berencana,Akseptor IUD,2022,100,akseptor
+Keluarga Berencana,Akseptor PIL,2021,99,akseptor
+Keluarga Berencana,Akseptor PIL,2022,253,akseptor
+Keluarga Berencana,Akseptor Suntikan,2021,111,akseptor
+Keluarga Berencana,Akseptor Suntikan,2022,418,akseptor
+Keluarga Berencana,Akseptor Kondom,2021,6,akseptor
+Keluarga Berencana,Akseptor Kondom,2022,15,akseptor
+Keluarga Berencana,Akseptor MOP,2021,0,akseptor
+Keluarga Berencana,Akseptor MOP,2022,1,akseptor
+Keluarga Berencana,Akseptor MOW,2021,1,akseptor
+Keluarga Berencana,Akseptor MOW,2022,35,akseptor
+Keluarga Berencana,Akseptor Implant,2021,8,akseptor
+Keluarga Berencana,Akseptor Implant,2022,48,akseptor
+Pertanian,Lahan sawah irigasi,2021,254,Ha
+Pertanian,Lahan sawah irigasi,2022,254,Ha
+Pertanian,Lahan pertanian non-sawah,2021,192.74,Ha
+Pertanian,Lahan pertanian non-sawah,2022,192.74,Ha
+Pertanian,Lahan non-pertanian,2021,235,Ha
+Pertanian,Lahan non-pertanian,2022,235,Ha
+Pertanian,Lahan baku sawah,2021,177.26,Ha
+Pertanian,Lahan baku sawah,2022,177.26,Ha
+Pertanian,Kelompok tani - Padi,2021,8,kelompok
+Pertanian,Kelompok tani - Padi,2022,1,kelompok
+Pertanian,Kelompok tani - Peternakan,2021,1,kelompok
+Pertanian,Kelompok tani - Peternakan,2022,1,kelompok
+Ekonomi & Infrastruktur,Keluarga pelanggan PLN,2021,2195,keluarga
+Ekonomi & Infrastruktur,Keluarga pelanggan PLN,2022,2319,keluarga
+Ekonomi & Infrastruktur,Keluarga pelanggan PLN,2023,2392,keluarga
+Ekonomi & Infrastruktur,Keluarga pelanggan PLN,2024,2187,keluarga
+Ekonomi & Infrastruktur,Pasar,2021,1,unit
+Ekonomi & Infrastruktur,Pasar,2023,1,unit
+Ekonomi & Infrastruktur,Pasar,2024,1,unit
+Ekonomi & Infrastruktur,Minimarket,2021,3,unit
+Ekonomi & Infrastruktur,Minimarket,2022,3,unit
+Ekonomi & Infrastruktur,Minimarket,2023,3,unit
+Ekonomi & Infrastruktur,Minimarket,2024,3,unit
+Ekonomi & Infrastruktur,Rumah makan / kedai,2021,40,unit
+Ekonomi & Infrastruktur,Rumah makan / kedai,2022,40,unit
+Ekonomi & Infrastruktur,Rumah makan / kedai,2023,40,unit
+Ekonomi & Infrastruktur,Rumah makan / kedai,2024,40,unit
+Ekonomi & Infrastruktur,Menara BTS,2021,3,unit
+Ekonomi & Infrastruktur,Menara BTS,2022,3,unit
+Ekonomi & Infrastruktur,Menara BTS,2023,3,unit
+Ekonomi & Infrastruktur,Menara BTS,2024,3,unit
+Ekonomi & Infrastruktur,Operator seluler,2021,4,operator
+Ekonomi & Infrastruktur,Operator seluler,2022,4,operator
+Ekonomi & Infrastruktur,Operator seluler,2023,4,operator
+Ekonomi & Infrastruktur,Operator seluler,2024,4,operator
+Ekonomi & Infrastruktur,PBB - Target,2021,183571870,Rp
+Ekonomi & Infrastruktur,PBB - Target,2022,185257990,Rp
+Ekonomi & Infrastruktur,PBB - Realisasi,2021,100312202,Rp
+Ekonomi & Infrastruktur,PBB - Realisasi,2022,58573048,Rp

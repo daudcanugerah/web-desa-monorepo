@@ -7,6 +7,16 @@ export const umkmService = {
   update: (id, data) => api.put(`/umkm/${id}`, data),
   delete: (id) => api.delete(`/umkm/${id}`),
 
+  // Pre-upload one image, returning { media_id, url }. Attach the media_id
+  // via `images_media_ids` on create/update.
+  uploadMedia: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/umkm/upload-media', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+
   // Categories
   getCategories: (params) => api.get('/public/umkm/categories', { params }),
   createCategory: (data) => api.post('/umkm/categories', data),

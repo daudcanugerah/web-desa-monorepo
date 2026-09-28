@@ -32,15 +32,28 @@
         </div>
       </div>
 
-      <div>
-        <label class="block text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">Status</label>
-        <div class="flex items-center">
-          <input
-            v-model="form.state"
-            type="checkbox"
-            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-secondary-300 dark:border-secondary-600 rounded"
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <AppCategoryPicker
+            v-model="form.category"
+            :suggestions="categorySuggestions"
+            :service="profileSectionService"
+            label="Kategori (Opsional)"
+            placeholder="Pilih atau buat kategori..."
+            @manage="showCategoryModal = true"
           />
-          <label class="ml-2 text-sm text-secondary-700 dark:text-secondary-300">Aktif</label>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">Status</label>
+          <div class="flex items-center">
+            <input
+              v-model="form.state"
+              type="checkbox"
+              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-secondary-300 dark:border-secondary-600 rounded"
+            />
+            <label class="ml-2 text-sm text-secondary-700 dark:text-secondary-300">Aktif</label>
+          </div>
         </div>
       </div>
 
@@ -71,6 +84,14 @@
         </AppButton>
       </div>
     </div>
+
+    <CategoryManagerModal
+      :show="showCategoryModal"
+      :service="profileSectionService"
+      title="Kelola Kategori Informasi Detail"
+      @close="showCategoryModal = false"
+      @selected="onCategorySelected"
+    />
   </div>
 </template>
 
@@ -79,6 +100,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppButton from '../../components/common/AppButton.vue'
 import AppBackButton from '../../components/common/AppBackButton.vue'
+import AppCategoryPicker from '../../components/common/AppCategoryPicker.vue'
+import CategoryManagerModal from '../../components/common/CategoryManagerModal.vue'
 import RichTextEditor from '../../components/forms/RichTextEditor.vue'
 import { profileSectionService } from '../../services/profile-section.service'
 import { useNotificationStore } from '../../stores/notification'
@@ -93,9 +116,28 @@ const form = ref({
   section_endpoint: '',
   content: '',
   state: true,
+  category: { id: '', name: '' },
 })
 const errors = ref({})
 const saving = ref(false)
+const showCategoryModal = ref(false)
+const categorySuggestions = ref([])
+
+function onCategorySelected(category) {
+  form.value.category = { id: category.id, name: category.name }
+}
+
+async function loadCategorySuggestions() {
+  try {
+    const res = await profileSectionService.getCategories({ limit: 100 })
+    const list = res.data?.categories || res.data || []
+    categorySuggestions.value = (Array.isArray(list) ? list : [])
+      .filter((c) => c && (c.id || c.name))
+      .map((c) => ({ id: c.id, name: c.name }))
+  } catch {
+    categorySuggestions.value = []
+  }
+}
 
 function generateEndpoint() {
   // Generate random short string (8 chars)
@@ -127,6 +169,7 @@ async function handleSubmit() {
       section_endpoint: form.value.section_endpoint,
       content: form.value.content,
       state: form.value.state,
+      category: form.value.category?.id || '',
     }
     
     if (isEdit.value) {
@@ -146,6 +189,8 @@ async function handleSubmit() {
 }
 
 onMounted(async () => {
+  await loadCategorySuggestions()
+
   if (isEdit.value) {
     try {
       const res = await profileSectionService.get(route.params.id)
@@ -155,6 +200,10 @@ onMounted(async () => {
         section_endpoint: data.section_endpoint,
         content: data.content,
         state: data.state,
+        category: {
+          id: data.category_id || data.category?.id || '',
+          name: data.category?.name || '',
+        },
       }
     } catch (err) {
       notificationStore.error('Gagal memuat data informasi detail')

@@ -207,11 +207,14 @@ func (r *GalleryRepository) GetMediaByID(ctx context.Context, id string) (*domai
 
 func (r *GalleryRepository) GetPublicMediaByID(ctx context.Context, id string) (*domaingallery.Media, error) {
 	var row galleryMediaRow
+	// Public access is folder-level: a media item is visible to the public
+	// when its (non-system) folder is public. Per-item media privacy is not
+	// applied to the public gallery.
 	if err := r.db.GetContext(ctx, &row, `
 		SELECT `+galleryMediaColumns+`
 		FROM gallery_media m
 		JOIN gallery_folders f ON f.id = m.folder_id
-		WHERE m.id = $1 AND f.is_public = TRUE AND m.is_public = TRUE
+		WHERE m.id = $1 AND f.is_public = TRUE
 	`, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, mediaNotFound(id)
@@ -226,7 +229,8 @@ func (r *GalleryRepository) ListMediaByFolder(ctx context.Context, folderID stri
 	args := []interface{}{folderID}
 	arg := 2
 	if publicOnly {
-		clauses = append(clauses, "f.is_public = TRUE", "m.is_public = TRUE")
+		// Folder-level gate only: a public folder exposes all its media.
+		clauses = append(clauses, "f.is_public = TRUE")
 	}
 	appendMediaFilters(&clauses, &args, &arg, q, false)
 	return r.listMedia(ctx, strings.Join(clauses, " AND "), args, q.Limit, pageOffset(q.Page, q.Limit))

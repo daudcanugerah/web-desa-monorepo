@@ -61,6 +61,18 @@ func (r *stubRepo) CountActiveBanners(ctx context.Context) (int, error) {
 	return 0, nil
 }
 
+func (r *stubRepo) CountByImageMediaID(ctx context.Context, mediaID string) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	count := 0
+	for _, b := range r.rows {
+		if b.ImageMediaID != nil && *b.ImageMediaID == mediaID {
+			count++
+		}
+	}
+	return count, nil
+}
+
 func (r *stubRepo) Delete(ctx context.Context, id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -175,11 +187,11 @@ func TestCreateCleanupOnCategoryFailure(t *testing.T) {
 	// later step (category validation) fails
 	badCat := "cat-nope"
 	_, err := svc.Create(ctx, CreateBannerInput{
-		Title:      "Gagal",
-		ImageFile:  bytes.NewReader([]byte("x")),
-		ImageName:  "a.jpg",
-		ImageSize:  1,
-		Category:   &badCat,
+		Title:       "Gagal",
+		ImageFile:   bytes.NewReader([]byte("x")),
+		ImageName:   "a.jpg",
+		ImageSize:   1,
+		Category:    &badCat,
 		ContentType: "image/jpeg",
 	})
 	require.Error(t, err)

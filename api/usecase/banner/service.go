@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"webdesa/api/domain/banner"
 	"webdesa/api/domain/bannercategory"
@@ -60,6 +61,8 @@ type CreateBannerInput struct {
 	ContentType string
 	Category    *string                // Optional UUID FK to banner_categories
 	Metadata    map[string]interface{} // Optional metadata (e.g., HTML content)
+	// Status is optional; defaults to inactive when nil/empty.
+	Status *string
 	// ImageMediaID references an image already uploaded via
 	// POST /banners/upload-media. Mutually exclusive with ImageFile.
 	ImageMediaID *string
@@ -152,13 +155,21 @@ func (s *Service) Create(ctx context.Context, input CreateBannerInput) (*banner.
 	if metadata == nil {
 		metadata = make(map[string]interface{})
 	}
+	status := banner.StatusInactive
+	if input.Status != nil && strings.TrimSpace(*input.Status) != "" {
+		status = strings.TrimSpace(*input.Status)
+	}
+	if status != banner.StatusActive && status != banner.StatusInactive {
+		cleanup()
+		return nil, fmt.Errorf("status must be either 'active' or 'inactive'")
+	}
 	b := &banner.Banner{
 		ID:           uuid.NewString(),
 		Title:        input.Title,
 		Description:  input.Description,
 		Link:         input.Link,
 		ImageMediaID: &mediaID,
-		Status:       banner.StatusInactive,
+		Status:       status,
 		Category:     input.Category,
 		Metadata:     metadata,
 		CreatedAt:    now,
@@ -328,7 +339,12 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	}
 
 	if b.ImageMediaID != nil && *b.ImageMediaID != "" {
-		_ = s.fileStore.Delete(ctx, *b.ImageMediaID)
+		// Only delete the media when no other banner still references it —
+		// banners.image_media_id is ON DELETE SET NULL, so removing a shared
+		// media would silently blank the other banners' images.
+		if refs, err := s.repo.CountByImageMediaID(ctx, *b.ImageMediaID); err == nil && refs == 0 {
+			_ = s.fileStore.Delete(ctx, *b.ImageMediaID)
+		}
 	}
 
 	return nil

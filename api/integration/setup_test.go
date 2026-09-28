@@ -58,6 +58,7 @@ import (
 	"webdesa/api/usecase/ppid"
 	"webdesa/api/usecase/ppidcategory"
 	"webdesa/api/usecase/profile"
+	"webdesa/api/usecase/profilecategory"
 	"webdesa/api/usecase/role"
 	"webdesa/api/usecase/struktur"
 	"webdesa/api/usecase/umkm"
@@ -125,7 +126,7 @@ func TestMain(m *testing.M) {
 		"password_reset_tokens", "user_roles", "users",
 		"berita", "berita_categories", "umkm", "umkm_categories",
 		"fasilitas", "fasilitas_categories", "struktur_organisasi",
-		"profile", "infographic", "infographic_categories", "banners", "banner_categories",
+		"profile", "profile_categories", "infographic", "infographic_categories", "banners", "banner_categories",
 		"backups", "casbin_rule", "settings", "infographic_access_log",
 	} {
 		if _, err := db.Exec("TRUNCATE TABLE " + table + " CASCADE"); err != nil {
@@ -251,6 +252,7 @@ func buildTestServer(db *sqlx.DB) *TestServer {
 	strukturRepo := repopg.NewStrukturRepository(db)
 	desaRepo := repopg.NewDesaRepository(db)
 	profileRepo := repopg.NewProfileRepository(db)
+	profileCategoryRepo := repopg.NewProfileCategoryRepository(db)
 	infographicRepo := repopg.NewInfographicRepository(db)
 	infographicCategoryRepo := repopg.NewInfographicCategoryRepository(db)
 
@@ -283,8 +285,8 @@ func buildTestServer(db *sqlx.DB) *TestServer {
 		galleryConfig,
 		clk,
 		galleryusecase.NewMediaDeletionHub(),
-	// Task 7.1: signed URLs disabled in this CLI/integration path
-	nil,
+		// Task 7.1: signed URLs disabled in this CLI/integration path
+		nil,
 	)
 	// gallery deletion listeners (Task 5.1)
 	galleryService.Hub().AddListener(umkmRepo)
@@ -310,7 +312,8 @@ func buildTestServer(db *sqlx.DB) *TestServer {
 	fasilitasService := fasilitas.NewService(fasilitasRepo, fileStore, clk, fasilitasCategoryService, &galleryConfig)
 	strukturService := struktur.NewService(strukturRepo, fileStore, clk)
 	desaService := desa.NewService(desaRepo, clk)
-	profileService := profile.NewService(profileRepo, clk)
+	profileCategoryService := profilecategory.NewService(profileCategoryRepo, clk)
+	profileService := profile.NewService(profileRepo, clk, profileCategoryService)
 	infographicAccessLogRepo := repopg.NewInfographicAccessLogRepository(db)
 	infographicService := infographic.NewService(infographicRepo, clk, config.MetabaseConfig{
 		SecretKey: "test-secret-key",
@@ -350,8 +353,10 @@ func buildTestServer(db *sqlx.DB) *TestServer {
 	ppidHandler := ppidhandler.NewPPIDHandler(ppidService, "./test_uploads/ppid", logger, nil, false)
 	ppidCategoryHandler := ppidcategoryhandler.NewPPIDCategoryHandler(ppidCategoryService)
 	strukturHandler := strukturhandler.NewStrukturHandler(strukturService, nil, false)
-	desaHandler := desahandler.NewDesaHandler(desaService)
+	desaHandler := desahandler.NewDesaHandler(desaService, nil, false)
+	desaUploadHandler := desahandler.NewDesaUploadHandler(fileStore, logger)
 	profileHandler := profilehandler.NewProfileHandler(profileService)
+	profileCategoryHandler := profilehandler.NewProfileCategoryHandler(profileCategoryService)
 	infographicHandler := infographichandler.NewInfographicHandler(infographicService)
 	infographicCategoryHandler := infographiccategoryhandler.NewInfographicCategoryHandler(infographicCategoryService)
 	healthHandler := healthhandler.NewHealthHandler()
@@ -376,7 +381,9 @@ func buildTestServer(db *sqlx.DB) *TestServer {
 		PPIDCategoryHandler:        ppidCategoryHandler,
 		StrukturHandler:            strukturHandler,
 		DesaHandler:                desaHandler,
+		DesaUploadHandler:          desaUploadHandler,
 		ProfileHandler:             profileHandler,
+		ProfileCategoryHandler:     profileCategoryHandler,
 		InfographicHandler:         infographicHandler,
 		InfographicCategoryHandler: infographicCategoryHandler,
 		HealthHandler:              healthHandler,

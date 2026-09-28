@@ -9,8 +9,8 @@ import (
 	"github.com/ggicci/httpin"
 	"github.com/go-chi/chi/v5"
 
-	"webdesa/api/pkg/response"
 	domainbanner "webdesa/api/domain/banner"
+	"webdesa/api/pkg/response"
 	"webdesa/api/usecase/banner"
 	galleryusecase "webdesa/api/usecase/gallery"
 
@@ -27,9 +27,9 @@ import (
 // the legacy per-scope paths. When false, the handler behaves exactly as
 // before — same URLs, same RBAC, no client change required.
 type BannerHandler struct {
-	bannerService       *banner.Service
-	signedURL           *galleryusecase.SignedURLService
-	signedURLsEnabled   bool
+	bannerService     *banner.Service
+	signedURL         *galleryusecase.SignedURLService
+	signedURLsEnabled bool
 }
 
 // NewBannerHandler creates a new banner handler with service dependency injected.
@@ -150,7 +150,7 @@ type BannerListResponse struct {
 
 // CreateBanner godoc
 // @Summary      Create banner (admin)
-// @Description  Create a banner. Multipart form: title (required), description, link, image or image_media_id (required, mutually exclusive), category (UUID, optional), metadata (JSON string). Defaults status to inactive. RBAC: banners:write.
+// @Description  Create a banner. Multipart form: title (required), description, link, image or image_media_id (required, mutually exclusive), category (UUID, optional), metadata (JSON string), status (active|inactive, optional; defaults to inactive). RBAC: banners:write.
 // @Tags         banner
 // @Accept       mpfd
 // @Produce      json
@@ -161,6 +161,7 @@ type BannerListResponse struct {
 // @Param        image_media_id formData string false "Gallery media UUID (mutually exclusive with image)"
 // @Param        category    formData  string  false "Category UUID"
 // @Param        metadata    formData  string  false "Metadata as JSON string"
+// @Param        status      formData  string  false "Status: active or inactive (default inactive)" Enums(active, inactive)
 // @Success      201         {object} banner.BannerResponse
 // @Failure      400         {object} response.ErrorResponse
 // @Failure      401         {object} response.ErrorResponse
@@ -171,13 +172,14 @@ type BannerListResponse struct {
 // Validates: Requirements 7.3, 16.1, 16.2
 func (h *BannerHandler) CreateBanner(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Title       string       `in:"form=title" validate:"required,min=1"`
-		Description string       `in:"form=description"`
-		Link        string       `in:"form=link"`
-		Image       *httpin.File `in:"form=image"`
-		ImageMediaID *string     `in:"form=image_media_id"`
-		Category    string       `in:"form=category"`
-		MetadataStr string       `in:"form=metadata"`
+		Title        string       `in:"form=title" validate:"required,min=1"`
+		Description  string       `in:"form=description"`
+		Link         string       `in:"form=link"`
+		Image        *httpin.File `in:"form=image"`
+		ImageMediaID *string      `in:"form=image_media_id"`
+		Category     string       `in:"form=category"`
+		MetadataStr  string       `in:"form=metadata"`
+		Status       *string      `in:"form=status" validate:"omitempty,oneof=active inactive"`
 	}
 
 	if err := httpin.DecodeTo(r, &input); err != nil {
@@ -243,6 +245,7 @@ func (h *BannerHandler) CreateBanner(w http.ResponseWriter, r *http.Request) {
 		ImageMediaID: input.ImageMediaID,
 		Category:     nilIfEmpty(input.Category),
 		Metadata:     metadata,
+		Status:       input.Status,
 	}
 
 	b, err := h.bannerService.Create(r.Context(), bannerInput)
@@ -391,7 +394,7 @@ func (h *BannerHandler) GetActiveBanners(w http.ResponseWriter, r *http.Request)
 			Title:       b.Title,
 			Description: b.Description,
 			Link:        b.Link,
-		Media:       h.buildBannerMedia(b, true),
+			Media:       h.buildBannerMedia(b, true),
 			Status:      b.Status,
 			CategoryID:  b.Category,
 			Category:    buildCategoryInfo(b.Category, b.CategoryName),

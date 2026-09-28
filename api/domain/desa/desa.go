@@ -13,14 +13,37 @@ import (
 // Note: Repository interfaces are defined in the usecase layer where they are USED,
 // following Go best practices. See usecase/desa for the Repository interface definition.
 type Desa struct {
-	Name          string    `json:"name"`
-	Description   *string   `json:"description,omitempty"`
-	Address       *string   `json:"address,omitempty"`
-	Phone         *string   `json:"phone,omitempty"`
-	Email         *string   `json:"email,omitempty"`
-	Website       *string   `json:"website,omitempty"`
-	VisionMission *string   `json:"vision_mission,omitempty"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	Name              string    `json:"name"`
+	Description       *string   `json:"description,omitempty"`
+	Address           *string   `json:"address,omitempty"`
+	Phone             *string   `json:"phone,omitempty"`
+	Email             *string   `json:"email,omitempty"`
+	Website           *string   `json:"website,omitempty"`
+	VisionMission     *string   `json:"vision_mission,omitempty"`
+	KepalaDesa        *string   `json:"kepala_desa,omitempty"`
+	KepalaDesaMessage *string   `json:"kepala_desa_message,omitempty"`
+	KepalaDesaMediaID *string   `json:"kepala_desa_media_id,omitempty"`
+	Motto             *string   `json:"motto,omitempty"`
+	Kecamatan         *string   `json:"kecamatan,omitempty"`
+	Kabupaten         *string   `json:"kabupaten,omitempty"`
+	Provinsi          *string   `json:"provinsi,omitempty"`
+	JumlahPenduduk    *int      `json:"jumlah_penduduk,omitempty"`
+	JumlahKK          *int      `json:"jumlah_kk,omitempty"`
+	JumlahDusun       *int      `json:"jumlah_dusun,omitempty"`
+	JumlahRT          *int      `json:"jumlah_rt,omitempty"`
+	JumlahRW          *int      `json:"jumlah_rw,omitempty"`
+	JumlahUMKM        *int      `json:"jumlah_umkm,omitempty"`
+	SocialMedia       []SocialLink `json:"social_media,omitempty"`
+	UpdatedAt         time.Time `json:"updated_at"`
+}
+
+// SocialLink is one official social-media channel for the village, stored in
+// the desa_profile settings JSON. Platform is a free-form slug (e.g.
+// "facebook", "instagram", "youtube", "tiktok", "whatsapp", "twitter") the
+// front-end maps to an icon; URL must be http(s).
+type SocialLink struct {
+	Platform string `json:"platform"`
+	URL      string `json:"url"`
 }
 
 // Validate checks if the Desa entity satisfies domain invariants.
@@ -65,6 +88,85 @@ func (d *Desa) Validate() error {
 		}
 	}
 
+	if d.KepalaDesa != nil {
+		if err := validateOptionalText("kepala desa", *d.KepalaDesa, 255); err != nil {
+			return err
+		}
+	}
+
+	if d.KepalaDesaMessage != nil {
+		if err := validateOptionalText("kepala desa message", *d.KepalaDesaMessage, 10000); err != nil {
+			return err
+		}
+	}
+
+	if d.Motto != nil {
+		if err := validateOptionalText("motto", *d.Motto, 500); err != nil {
+			return err
+		}
+	}
+
+	if d.Kecamatan != nil {
+		if err := validateOptionalText("kecamatan", *d.Kecamatan, 255); err != nil {
+			return err
+		}
+	}
+
+	if d.Kabupaten != nil {
+		if err := validateOptionalText("kabupaten", *d.Kabupaten, 255); err != nil {
+			return err
+		}
+	}
+
+	if d.Provinsi != nil {
+		if err := validateOptionalText("provinsi", *d.Provinsi, 255); err != nil {
+			return err
+		}
+	}
+
+	for i, link := range d.SocialMedia {
+		if strings.TrimSpace(link.Platform) == "" {
+			return fmt.Errorf("social_media[%d] platform is required", i)
+		}
+		if len(link.Platform) > 50 {
+			return fmt.Errorf("social_media[%d] platform must not exceed 50 characters", i)
+		}
+		if !strings.HasPrefix(link.URL, "http://") && !strings.HasPrefix(link.URL, "https://") {
+			return fmt.Errorf("social_media[%d] url must start with http:// or https://", i)
+		}
+		if len(link.URL) > 500 {
+			return fmt.Errorf("social_media[%d] url must not exceed 500 characters", i)
+		}
+	}
+
+	for _, counter := range []struct {
+		name  string
+		value *int
+	}{
+		{"jumlah penduduk", d.JumlahPenduduk},
+		{"jumlah kk", d.JumlahKK},
+		{"jumlah dusun", d.JumlahDusun},
+		{"jumlah rt", d.JumlahRT},
+		{"jumlah rw", d.JumlahRW},
+		{"jumlah umkm", d.JumlahUMKM},
+	} {
+		if counter.value != nil && *counter.value < 0 {
+			return fmt.Errorf("%s must not be negative", counter.name)
+		}
+	}
+
+	return nil
+}
+
+// validateOptionalText checks an optional free-text field: when present it
+// must be non-blank after trim and within maxLen runes.
+func validateOptionalText(field, value string, maxLen int) error {
+	if strings.TrimSpace(value) == "" {
+		return fmt.Errorf("%s cannot be empty string", field)
+	}
+	if len([]rune(value)) > maxLen {
+		return fmt.Errorf("%s must not exceed %d characters", field, maxLen)
+	}
 	return nil
 }
 

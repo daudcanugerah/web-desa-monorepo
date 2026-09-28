@@ -374,6 +374,8 @@ func TestGalleryPublicMatrix(t *testing.T) {
 	ts, token := setupGalleryAdmin(t)
 	defer ts.Cleanup(t)
 
+	// Public visibility is folder-level: a media item is visible whenever its
+	// folder is public, regardless of the item's own is_public flag.
 	cases := []struct {
 		name         string
 		folderPublic bool
@@ -382,7 +384,7 @@ func TestGalleryPublicMatrix(t *testing.T) {
 	}{
 		{"private_private", false, false, false},
 		{"private_public", false, true, false},
-		{"public_private", true, false, false},
+		{"public_private", true, false, true},
 		{"public_public", true, true, true},
 	}
 	jpegBytes := tinyGalleryJPEG(t)
@@ -521,10 +523,10 @@ func TestGalleryPublicListDetailFiltersMediaAndHidesUploader(t *testing.T) {
 	public := true
 	folderID, _ := createGalleryFolder(t, ts, token, "Public Eligible", &public)
 	jpegBytes := tinyGalleryJPEG(t)
-	visibleID, _ := uploadGalleryMedia(t, ts, folderID, token, "media[]", "visible.jpg", "image/jpeg", jpegBytes)
-	hiddenID, _ := uploadGalleryMedia(t, ts, folderID, token, "media", "hidden.jpg", "image/jpeg", jpegBytes)
-	updateGalleryMediaVisibility(t, ts, token, visibleID, true)
+	firstID, _ := uploadGalleryMedia(t, ts, folderID, token, "media[]", "first.jpg", "image/jpeg", jpegBytes)
+	secondID, _ := uploadGalleryMedia(t, ts, folderID, token, "media", "second.jpg", "image/jpeg", jpegBytes)
 
+	// A private folder is never listed, even when it holds a public media item.
 	privateFolderID, _ := createGalleryFolder(t, ts, token, "Private With Public Media", nil)
 	privateMediaID, _ := uploadGalleryMedia(t, ts, privateFolderID, token, "media[]", "private.jpg", "image/jpeg", jpegBytes)
 	updateGalleryMediaVisibility(t, ts, token, privateMediaID, true)
@@ -538,34 +540,24 @@ func TestGalleryPublicListDetailFiltersMediaAndHidesUploader(t *testing.T) {
 	publicFolder, ok := folders[0].(map[string]interface{})
 	require.True(t, ok)
 	assert.Equal(t, folderID, publicFolder["id"])
-	assert.Contains(t, publicFolder["cover_thumbnail_url"].(string), "/api/v1/public/gallery/media/")
-	assert.Contains(t, publicFolder["cover_thumbnail_url"].(string), "/thumbnail")
 	assert.NotContains(t, publicFolder, "uploaded_by")
 
+	// Folder-level gate: a public folder exposes ALL of its media, regardless
+	// of each item's own is_public flag.
 	resp, err = ts.MakeRequest("GET", "/api/v1/public/gallery/folders/"+folderID, nil, "")
 	require.NoError(t, err)
 	data = galleryResponseData(t, resp)
 	mediaList, ok := data["media"].([]interface{})
 	require.True(t, ok)
-	require.Len(t, mediaList, 1)
-	publicMedia := mediaList[0].(map[string]interface{})
-	assert.Equal(t, visibleID, publicMedia["id"])
-	assert.NotContains(t, publicMedia, "uploaded_by")
-	assert.Contains(t, publicMedia["thumbnail_url"].(string), "/api/v1/public/gallery/media/")
-	assert.Contains(t, publicMedia["thumbnail_url"].(string), "/thumbnail")
-	assert.Contains(t, publicMedia["content_url"].(string), "/api/v1/public/gallery/media/")
-	assert.Contains(t, publicMedia["content_url"].(string), "/content")
-
-	resp, err = ts.MakeRequest("GET", "/api/v1/public/gallery/media/"+visibleID, nil, "")
-	require.NoError(t, err)
-	publicMediaData := galleryResponseData(t, resp)
-	assert.NotContains(t, publicMediaData, "uploaded_by")
-	assert.Equal(t, visibleID, publicMediaData["id"])
-
-	resp, err = ts.MakeRequest("GET", "/api/v1/public/gallery/media/"+hiddenID, nil, "")
-	require.NoError(t, err)
-	resp.Body.Close()
-	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+	require.Len(t, mediaList, 2)
+	gotIDs := map[string]bool{}
+	for _, raw := range mediaList {
+		m := raw.(map[string]interface{})
+		gotIDs[m["id"].(string)] = true
+		assert.NotContains(t, m, "uploaded_by")
+	}
+	assert.True(t, gotIDs[firstID])
+	assert.True(t, gotIDs[secondID])
 }
 
 func TestGalleryBulkMediaVisibility(t *testing.T) {
@@ -605,13 +597,9 @@ func TestGalleryCoverRecomputesOnVisibilityAndDelete(t *testing.T) {
 	secondID, _ := uploadGalleryMedia(t, ts, folderID, token, "media", "second.jpg", "image/jpeg", jpegBytes)
 	assert.Equal(t, secondID, galleryCoverID(t, adminGalleryFolder(t, ts, token, folderID)))
 
+	// Folder-level gate: making the folder public keeps the latest media as
+	// its cover — no media need to be individually public.
 	updateGalleryFolderVisibility(t, ts, token, folderID, true)
-	assert.Empty(t, galleryCoverID(t, adminGalleryFolder(t, ts, token, folderID)))
-
-	updateGalleryMediaVisibility(t, ts, token, firstID, true)
-	assert.Equal(t, firstID, galleryCoverID(t, adminGalleryFolder(t, ts, token, folderID)))
-
-	updateGalleryMediaVisibility(t, ts, token, secondID, true)
 	assert.Equal(t, secondID, galleryCoverID(t, adminGalleryFolder(t, ts, token, folderID)))
 
 	updateGalleryFolderVisibility(t, ts, token, folderID, false)

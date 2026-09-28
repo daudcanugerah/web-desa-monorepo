@@ -22,13 +22,27 @@ func NewService(repo Repository, clk clock.Clock) *Service {
 
 // UpdateDesaInput represents the input for updating the village profile.
 type UpdateDesaInput struct {
-	Name          string
-	Description   *string
-	Address       *string
-	Phone         *string
-	Email         *string
-	Website       *string
-	VisionMission *string
+	Name              string
+	Description       *string
+	Address           *string
+	Phone             *string
+	Email             *string
+	Website           *string
+	VisionMission     *string
+	KepalaDesa        *string
+	KepalaDesaMessage *string
+	KepalaDesaMediaID *string
+	Motto             *string
+	Kecamatan         *string
+	Kabupaten         *string
+	Provinsi          *string
+	JumlahPenduduk    *int
+	JumlahKK          *int
+	JumlahDusun       *int
+	JumlahRT          *int
+	JumlahRW          *int
+	JumlahUMKM        *int
+	SocialMedia       []desa.SocialLink
 }
 
 // Get retrieves the village profile from settings.
@@ -44,14 +58,28 @@ func (s *Service) Get(ctx context.Context) (*desa.Desa, error) {
 func (s *Service) Update(ctx context.Context, input UpdateDesaInput) (*desa.Desa, error) {
 	// Build updated entity (upsert — no need to fetch first)
 	d := &desa.Desa{
-		Name:          input.Name,
-		Description:   input.Description,
-		Address:       input.Address,
-		Phone:         input.Phone,
-		Email:         input.Email,
-		Website:       input.Website,
-		VisionMission: input.VisionMission,
-		UpdatedAt:     s.clock.Now(),
+		Name:              input.Name,
+		Description:       input.Description,
+		Address:           input.Address,
+		Phone:             input.Phone,
+		Email:             input.Email,
+		Website:           input.Website,
+		VisionMission:     input.VisionMission,
+		KepalaDesa:        input.KepalaDesa,
+		KepalaDesaMessage: input.KepalaDesaMessage,
+		KepalaDesaMediaID: input.KepalaDesaMediaID,
+		Motto:             input.Motto,
+		Kecamatan:         input.Kecamatan,
+		Kabupaten:         input.Kabupaten,
+		Provinsi:          input.Provinsi,
+		JumlahPenduduk:    input.JumlahPenduduk,
+		JumlahKK:          input.JumlahKK,
+		JumlahDusun:       input.JumlahDusun,
+		JumlahRT:          input.JumlahRT,
+		JumlahRW:          input.JumlahRW,
+		JumlahUMKM:        input.JumlahUMKM,
+		SocialMedia:       input.SocialMedia,
+		UpdatedAt:         s.clock.Now(),
 	}
 
 	if err := d.Validate(); err != nil {

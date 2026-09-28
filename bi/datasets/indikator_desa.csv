@@ -1,0 +1,83 @@
+kategori,indikator,kelompok,nilai,satuan
+Pemerintahan,Jumlah KK / Keluarga,,2319,keluarga
+Pemerintahan,Rukun Tetangga (RT),,32,unit
+Pemerintahan,Rukun Warga (RW),,7,unit
+Pemerintahan,Dusun,,3,unit
+Pemerintahan,Aparat / Perangkat Desa,,13,orang
+Pemerintahan,BPD (anggota),,11,orang
+Pemerintahan,LPM (anggota),,10,orang
+Agama,Masjid,,14,unit
+Agama,Mushola / Langgar,,21,unit
+Agama,Penduduk Islam,,6754,jiwa
+Agama,Penduduk Kristen,,19,jiwa
+Agama,Penduduk Budha,,1,jiwa
+Agama,Nikah,,36,kejadian
+Kesehatan,Rumah Sakit,,0,unit
+Kesehatan,Puskesmas,,1,unit
+Kesehatan,Posyandu,,7,unit
+Kesehatan,Praktek Bidan,,2,unit
+Kesehatan,Klinik,,1,unit
+Kesehatan,Dokter Umum,,1,orang
+Kesehatan,Bidan (tenaga),,4,orang
+Kesehatan,Dukun Bayi,,1,orang
+Kesehatan,Tuna Rungu,disabilitas,5,jiwa
+Kesehatan,Tuna Netra,disabilitas,8,jiwa
+Kesehatan,Tuna Grahita,disabilitas,12,jiwa
+Kesehatan,Tuna Daksa,disabilitas,12,jiwa
+Kesehatan,Tuna Wicara,disabilitas,20,jiwa
+KB,Akseptor IUD,,100,akseptor
+KB,Akseptor PIL,,253,akseptor
+KB,Akseptor Suntikan,,418,akseptor
+KB,Akseptor Kondom,,15,akseptor
+KB,Akseptor MOP,,1,akseptor
+KB,Akseptor MOW,,35,akseptor
+KB,Akseptor Implant,,48,akseptor
+KB,PUS bukan akseptor,,121,pasangan
+Pendidikan,SD Negeri,sarana,4,sekolah
+Pendidikan,SMP Negeri,sarana,1,sekolah
+Pendidikan,TK Swasta,sarana,3,sekolah
+Pendidikan,Murid SD,murid,831,siswa
+Pendidikan,Murid SMP,murid,1326,siswa
+Pendidikan,Murid SMA/SMK,murid,162,siswa
+Pendidikan,Guru SD,guru,36,guru
+Pendidikan,Guru SMP,guru,65,guru
+Pendidikan,Belum sekolah,attainment,1785,jiwa
+Pendidikan,Tamat SD,attainment,2019,jiwa
+Pendidikan,Tamat SLTP,attainment,917,jiwa
+Pendidikan,Tamat SLTA,attainment,1133,jiwa
+Pendidikan,Akademi,attainment,97,jiwa
+Pendidikan,Universitas,attainment,176,jiwa
+Pekerjaan,Belum / Tidak Bekerja,,1785,jiwa
+Pekerjaan,ASN,,154,jiwa
+Pekerjaan,Tenaga Pengajar,,44,jiwa
+Pekerjaan,Wiraswasta,,1678,jiwa
+Pekerjaan,Pertanian & Peternakan,,352,jiwa
+Pekerjaan,Pelajar / Mahasiswa,,943,jiwa
+Pekerjaan,Pensiunan,,41,jiwa
+Pekerjaan,Lainnya,,1773,jiwa
+Pertanian,Lahan sawah irigasi,,254,Ha
+Pertanian,Lahan pertanian non-sawah,,192.74,Ha
+Pertanian,Lahan non-pertanian,,235,Ha
+Pertanian,Luas lahan baku sawah,,177.26,Ha
+Pertanian,Padi - Luas panen,,423,Ha
+Pertanian,Padi - Produksi,,2411.1,Ton
+Industri,Industri mikro/kecil - Kayu,,5,unit
+Industri,Industri mikro/kecil - Batako,,1,unit
+Industri,Industri mikro/kecil - Makanan/minuman,,10,unit
+Utilitas,Keluarga pelanggan PLN,,2319,keluarga
+Utilitas,Rumah tangga terlistriki PLN,,100,persen
+Utilitas,Pelanggan air minum PDAM,,2216,keluarga
+Perdagangan,Pasar (bangunan permanen),,1,unit
+Perdagangan,Pasar swalayan kecil / minimarket,,3,unit
+Perdagangan,Rumah makan / restoran / kedai,,40,unit
+Transportasi,Menara BTS,,3,unit
+Transportasi,Operator seluler yang menjangkau,,4,operator
+Transportasi,Agen ekspedisi / layanan pos,,1,unit
+Transportasi,Jembatan Beton,,25,unit
+Keuangan,PBB - Target,,185257990,Rp
+Keuangan,PBB - Realisasi,,58573048,Rp
+Keuangan,PBB - Realisasi,,31.62,persen
+Keuangan,Wajib Pajak,,5218,orang
+Keuangan,Wajib Pajak Terbayar,,2113,orang
+Keuangan,Bank Umum Pemerintah,,1,unit
+Keuangan,Bumi Desa (BUMDes),,1,unit

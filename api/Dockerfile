@@ -25,8 +25,9 @@ RUN go install github.com/swaggo/swag/cmd/swag@v1.16.3 && \
     swag init -g main.go -o docs --parseDependency --parseInternal --parseDepth 10 --exclude stable && \
     go run ./scripts/swag-tags
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /app/bin/desa-api .
+# Build the application (GOARCH follows the target platform: amd64/arm64)
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH:-amd64} go build -ldflags="-w -s" -o /app/bin/desa-api .
 
 # Runtime stage
 FROM alpine:latest

@@ -1,208 +1,97 @@
-# Village Government Website - Vue.js Version
+# Webdesa — Public Village Website
 
-A modern, responsive village government website built with Vue 3, Vite, and TailwindCSS. This is a complete rewrite of the React implementation in Vue.js.
+Responsive public website for an Indonesian village (sample: **Desa Palasari**).
+Vue 3 SPA that consumes the separate Go REST API (`webdesa/api`).
 
 ## Features
 
-- **Responsive Design**: Fully responsive on mobile, tablet, and desktop devices
-- **Multiple Pages**: 8 main routes covering all village information
-- **Data Visualization**: Charts and statistics for village demographics and economy
-- **Interactive Map**: Leaflet-based map showing important village locations
-- **News Management**: Full news listing and detail pages
-- **UMKM Showcase**: Display of local businesses and enterprises
-- **Public Information**: PPID (Layanan Informasi Publik) document management
-- **Modern UI**: Built with TailwindCSS utility classes
+- **Home** — banner slider, stats, latest news, village sambutan
+- **Profil** — history, vision/mission sections, village officials
+- **Infografik** — Metabase dashboard/question embeds (JWT tokens)
+- **Peta** — Leaflet map of the village polygon + facility markers, base-layer
+  switcher, Google-Maps-style list ⇄ place-detail panel
+- **Berita** — news list + article detail
+- **UMKM** — local business directory
+- **PPID** — public information documents + request submission
+- **Galeri** — public gallery (public folders + public media only)
 
-## Technology Stack
+## Tech stack
 
-- **Frontend Framework**: Vue 3 (Composition API)
-- **Build Tool**: Vite
-- **Styling**: TailwindCSS
+- **Framework**: Vue 3 (Options API shell + Composition `setup()`, no `<script setup>`)
+- **Build**: Vite 4
+- **Styling**: TailwindCSS 3
 - **Routing**: Vue Router 4
-- **Mapping**: Leaflet
-- **Language**: JavaScript (ES6+)
+- **Mapping**: Leaflet + leaflet-minimap + leaflet.markercluster
+- **Language**: JavaScript
 
-## Project Structure
+## Project structure
 
 ```
 src/
 ├── components/
-│   ├── layout/
-│   │   ├── Navbar.vue
-│   │   ├── Footer.vue
-│   │   └── Layout.vue
-│   └── common/
-│       ├── LoadingSpinner.vue
-│       ├── Card.vue
-│       └── EmptyState.vue
-├── pages/
-│   ├── Home.vue
-│   ├── Profil.vue
-│   ├── Infografik.vue
-│   ├── Peta.vue
-│   ├── Berita.vue
-│   ├── BeritaDetail.vue
-│   ├── UMKM.vue
-│   └── PPID.vue
+│   ├── layout/         # Layout, TopBar, Navbar, Footer
+│   └── common/         # Icon, Pagination, SearchInput, PlaceDetailPanel, …
+├── pages/              # one file per route
+├── composables/        # useDesaInfo, useFeatureFlags
 ├── services/
-│   └── desaService.js
-├── router/
-│   └── index.js
+│   ├── apiClient.js    # fetch-based HTTP client singleton
+│   └── desaService.js  # all public API access
+├── router/index.js
 ├── App.vue
 ├── main.js
 └── style.css
+public/
+└── area-desa-poly.json # village polygon ([lng, lat] pairs)
 ```
 
 ## Routes
 
-- `/` - Home page with hero slider, stats, and latest news
-- `/profil` - Village profile with history, vision, mission, and officials
-- `/infografik` - Data visualization with demographics, economy, and education stats
-- `/peta` - Interactive map with important village locations
-- `/berita` - News listing page
-- `/berita/:slug` - Individual news article detail page
-- `/umkm` - Local businesses showcase
-- `/ppid` - Public information disclosure documents
+| Path | Page |
+|---|---|
+| `/` | Home |
+| `/profil` | Profil |
+| `/infografik` | Infografik |
+| `/peta` | Peta |
+| `/berita` | Berita |
+| `/berita/:id` | BeritaDetail |
+| `/umkm` | UMKM |
+| `/ppid` | PPID |
+| `/galeri` | Galeri |
+| `/galeri/:id` | GaleriDetail |
+| `*` | NotFound |
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js 16+ and npm
-
-### Installation
+## Getting started
 
 ```bash
-# Install dependencies
 npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
+npm run dev       # dev server on :5173
+npm run build     # production build
+npm run preview   # preview the build
 ```
 
-The development server will open at `http://localhost:5173`
+Requires the API running. Configure via `.env`:
 
-## Data Service Layer
+```ini
+VITE_API_BASE_URL=http://localhost:8081/api/v1
+VITE_METABASE_URL=http://bi-embed.desapalasari.my.id
+VITE_FEATURE_GALLERY_PUBLIC=false
+```
 
-All data is managed through `src/services/desaService.js` which provides:
+`VITE_API_BASE_URL` may be given with or without the `/api/v1` suffix — it is
+appended automatically if missing.
 
-- `getHomeData()` - Home page data with stats and latest news
-- `getProfilData()` - Village profile information
-- `getInfografikData()` - Chart and statistics data
-- `getPetaData()` - Map markers and coordinates
-- `getBeritaList()` - List of all news articles
-- `getBeritaBySlug(slug)` - Single news article by slug
-- `getUMKMData()` - Local businesses data
-- `getPPIDData()` - Public documents
+## Data layer
 
-Each function simulates a 1-second network delay for realistic development experience.
+All data access lives in `src/services/desaService.js` (see
+[`docs/services.md`](./docs/services.md)). It talks **only** to the backend —
+there are no mocks. Responses are `{ success, data }`; helpers (`unwrapData`,
+`unwrapList`, `unwrapPaginated`) normalize them and flatten `category` objects
+to plain names.
 
-## Component Guidelines
+Media URLs returned by the API are signed, relative paths
+(`/api/v1/media/{id}/...?jwt=`); resolve them with `resolveGalleryAssetUrl()`.
 
-### Component Size
-- All components are kept under 150 lines
-- Complex logic is extracted into separate components
-- Reusable components are centralized
+## Docs
 
-### State Management
-- Uses Vue 3 Composition API with `ref` and `computed`
-- Local state for component-specific data
-- No global state management needed
-
-### Loading States
-- All pages display `LoadingSpinner` during data fetch
-- Empty states handled gracefully with `EmptyState` component
-- Error handling with console logging
-
-## Styling
-
-- **Framework**: TailwindCSS utility classes only
-- **Colors**: Emerald (primary), Blue (secondary), Gray (neutral)
-- **Responsive**: Mobile-first approach with md/lg breakpoints
-- **Animations**: Smooth transitions and fade-in effects
-
-## Key Features
-
-### Home Page
-- Auto-rotating hero slider with 5-second interval
-- Village statistics cards
-- Village head welcome section
-- Latest news preview
-- Explore sections with quick links
-
-### Navigation
-- Sticky navbar with active route highlighting
-- Mobile hamburger menu
-- Persistent footer with contact info
-
-### News System
-- Grid layout for news listing
-- Individual article pages with full content
-- Date formatting in Indonesian locale
-- Category badges
-
-### Map Integration
-- Leaflet-based interactive map
-- Multiple location markers
-- Popup information on marker click
-- Responsive map container
-
-### Data Visualization
-- Progress bars for demographics
-- Sector breakdown charts
-- Education level statistics
-- Infrastructure facility counts
-
-## Performance
-
-- Vite provides instant HMR (Hot Module Replacement)
-- Optimized production build with code splitting
-- TailwindCSS tree-shaking removes unused styles
-- Lazy loading ready for future enhancements
-
-## Browser Support
-
-- Chrome/Edge (latest)
-- Firefox (latest)
-- Safari (latest)
-- Mobile browsers (iOS Safari, Chrome Mobile)
-
-## Development Workflow
-
-1. Start dev server: `npm run dev`
-2. Make changes to components
-3. Changes auto-reload in browser
-4. Build for production: `npm run build`
-5. Preview build: `npm run preview`
-
-## Code Quality
-
-- Functional components only (no class components)
-- Descriptive variable and function names
-- Clear separation of concerns
-- Reusable component patterns
-- Consistent file naming (PascalCase for components)
-
-## Future Enhancements
-
-- Search functionality
-- Multi-language support
-- Admin panel for content management
-- Real backend API integration
-- User authentication
-- Comments on news articles
-- Contact form with email integration
-
-## License
-
-This project is part of the Desa Sukamaju government website initiative.
-
-## Support
-
-For issues or questions, please contact the development team.
+See [`docs/`](./docs/README.md) for architecture, routing, services, components,
+and per-feature notes.

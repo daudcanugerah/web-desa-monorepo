@@ -66,7 +66,6 @@ func (r *FasilitasRepository) Create(ctx context.Context, f *fasilitas.Fasilitas
 // Validates: Requirements 11.3
 func (r *FasilitasRepository) FindByID(ctx context.Context, id string) (*fasilitas.Fasilitas, error) {
 	var f fasilitas.Fasilitas
-	var imagesJSON []byte
 	var imagesMediaIDsJSON []byte
 
 	query := `
@@ -84,7 +83,6 @@ func (r *FasilitasRepository) FindByID(ctx context.Context, id string) (*fasilit
 		&f.Latitude,
 		&f.Longitude,
 		&f.Description,
-		&imagesJSON,
 		&imagesMediaIDsJSON,
 		&f.CreatedAt,
 		&f.UpdatedAt,
@@ -183,7 +181,6 @@ func (r *FasilitasRepository) List(ctx context.Context, bbox *fasilitasUsecase.B
 	var fasilitases []*fasilitas.Fasilitas
 	for rows.Next() {
 		var f fasilitas.Fasilitas
-		var imagesJSON []byte
 		var imagesMediaIDsJSON []byte
 
 		err := rows.Scan(
@@ -194,7 +191,6 @@ func (r *FasilitasRepository) List(ctx context.Context, bbox *fasilitasUsecase.B
 			&f.Latitude,
 			&f.Longitude,
 			&f.Description,
-			&imagesJSON,
 			&imagesMediaIDsJSON,
 			&f.CreatedAt,
 			&f.UpdatedAt,

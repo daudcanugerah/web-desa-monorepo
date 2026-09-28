@@ -7,7 +7,7 @@
         class="relative w-20 h-20 border border-secondary-300 dark:border-secondary-600 rounded overflow-hidden group"
       >
         <SafeImg
-          :src="typeof img === 'string' ? img : URL.createObjectURL(img)"
+          :src="resolveSrc(img)"
           :alt="`Image ${idx + 1}`"
           class="w-full h-full"
           :lazy="false"
@@ -45,7 +45,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import SafeImg from './SafeImg.vue'
 import { isValidImageType, isWithinSize } from '../../utils/validators'
 
@@ -63,6 +63,29 @@ const emit = defineEmits(['update:modelValue'])
 const images = ref([...props.modelValue])
 const inputRef = ref(null)
 const error = ref('')
+const objectUrls = new Map() // File -> objectURL
+
+// Resolve a grid item to a displayable source. Strings are existing media
+// URLs; File objects get a cached object URL (never created in render, which
+// would leak and allocate on every re-render).
+function resolveSrc(img) {
+  if (!img) return ''
+  if (typeof img === 'string') return img
+  if (img instanceof File || img instanceof Blob) {
+    if (!objectUrls.has(img)) objectUrls.set(img, URL.createObjectURL(img))
+    return objectUrls.get(img)
+  }
+  // Media object emitted by the API ({ media_id, url, thumbnail_url }).
+  return img.thumbnail_url || img.url || ''
+}
+
+function revokeUrl(file) {
+  const url = objectUrls.get(file)
+  if (url) {
+    URL.revokeObjectURL(url)
+    objectUrls.delete(file)
+  }
+}
 
 watch(() => props.modelValue, (val) => {
   images.value = [...val]
@@ -87,7 +110,13 @@ function onPick(e) {
 }
 
 function removeAt(idx) {
+  revokeUrl(images.value[idx])
   images.value.splice(idx, 1)
   emit('update:modelValue', images.value)
 }
+
+onBeforeUnmount(() => {
+  objectUrls.forEach((url) => URL.revokeObjectURL(url))
+  objectUrls.clear()
+})
 </script>

@@ -8,7 +8,6 @@ export const infographicService = {
   delete: (id) => api.delete(`/infographic/${id}`),
   generatePreviewToken: (data) => api.post('/infographic/preview/token', data),
   getSectionNames: () => api.get('/infographic/sections/names'),
-  getAccessLogs: (params) => api.get('/infographic/access-logs', { params }),
 
   // Categories — admin has no GET for /infographic/categories,
   // so we use the public endpoint for listing (same pattern as

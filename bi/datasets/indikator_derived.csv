@@ -1,0 +1,42 @@
+dashboard,indikator,nilai,satuan
+Penduduk,Rasio Ketergantungan,68.1,per 100 usia produktif
+Pendidikan,Belum sekolah,29.1,persen
+Pendidikan,Tamat SD,33.0,persen
+Pendidikan,Tamat SLTP,15.0,persen
+Pendidikan,Tamat SLTA,18.5,persen
+Pendidikan,Akademi,1.6,persen
+Pendidikan,Universitas,2.9,persen
+Pendidikan,Siswa per Guru - SD,23.1,siswa per guru
+Pendidikan,Siswa per Guru - SMP,20.4,siswa per guru
+Pekerjaan,Belum / Tidak Bekerja,26.4,persen
+Pekerjaan,Lainnya,26.2,persen
+Pekerjaan,Wiraswasta,24.8,persen
+Pekerjaan,Pelajar / Mahasiswa,13.9,persen
+Pekerjaan,Pertanian & Peternakan,5.2,persen
+Pekerjaan,ASN,2.3,persen
+Pekerjaan,Tenaga Pengajar,0.6,persen
+Pekerjaan,Pensiunan,0.6,persen
+Kesehatan,Cakupan KB Aktif,87.8,persen
+Kesehatan,Penyandang Disabilitas,0.84,persen
+Kesehatan,Dokter per 1.000 penduduk,0.15,per 1000 penduduk
+Kesehatan,Bidan per 1.000 penduduk,0.59,per 1000 penduduk
+Kesehatan,Fasilitas kesehatan per 1.000 penduduk,1.62,per 1000 penduduk
+Pertanian,Produktivitas Padi,5.70,ton per Ha
+Pertanian,Sawah irigasi,37.3,persen
+Pertanian,Lahan non-pertanian,34.5,persen
+Pertanian,Pertanian non-sawah,28.3,persen
+Keagamaan,Islam,99.7,persen
+Keagamaan,Kristen,0.28,persen
+Keagamaan,Budha,0.015,persen
+Keagamaan,Sarana ibadah per 1.000 penduduk,5.16,per 1000 penduduk
+Pemerintahan,Jumlah KK / Keluarga,2319,keluarga
+Pemerintahan,Aparat / Perangkat Desa,13,orang
+Pemerintahan,BPD,11,orang
+Pemerintahan,LPM,10,orang
+Pemerintahan,Rukun Warga (RW),7,unit
+Pemerintahan,Rukun Tetangga (RT),32,unit
+Pemerintahan,Dusun,3,unit
+Ekonomi & Infrastruktur,Realisasi PBB,31.62,persen
+Ekonomi & Infrastruktur,Akses Listrik PLN,100,persen
+Ekonomi & Infrastruktur,Akses Air PDAM,95.6,persen
+Ekonomi & Infrastruktur,Usaha perdagangan per 1.000 penduduk,6.48,per 1000 penduduk

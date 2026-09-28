@@ -45,10 +45,10 @@ var ErrInvalidSignedToken = errors.New("invalid signed media token")
 // mismatches. The deny-list hook is used by the PPID scope (Task 7.2)
 // to revoke the sub that an admin denied.
 type SignedURLService struct {
-	secret    []byte
-	clock     func() time.Time
-	denyList  DenyList
-	defaults  SignedURLDefaults
+	secret   []byte
+	clock    func() time.Time
+	denyList DenyList
+	defaults SignedURLDefaults
 }
 
 // SignedURLDefaults collects TTLs for each scope. Public URLs last longer

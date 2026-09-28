@@ -110,6 +110,21 @@ async function handleSubmit() {
   saving.value = true
   try {
     const categoryId = form.value.category?.id || ''
+
+    // Upload new files first (single-shot endpoint), then send the full
+    // retained image set as images_media_ids (backend replaces on update).
+    const mediaIds = []
+    for (const item of imagesState.value) {
+      if (item instanceof File) {
+        const res = await umkmService.uploadMedia(item)
+        const mediaId = res.data?.media_id
+        if (mediaId) mediaIds.push(mediaId)
+      } else if (item && typeof item === 'object') {
+        const mediaId = item.media_id || item.id
+        if (mediaId) mediaIds.push(mediaId)
+      }
+    }
+
     const fd = new FormData()
     fd.append('name', form.value.name)
     fd.append('owner', form.value.owner)
@@ -120,13 +135,7 @@ async function handleSubmit() {
     if (categoryId) fd.append('category', categoryId)
     if (form.value.description) fd.append('description', form.value.description)
 
-    imagesState.value.forEach(img => {
-      if (img instanceof File) {
-        fd.append('images', img)
-      } else {
-        fd.append('existing_images', img)
-      }
-    })
+    mediaIds.forEach((id) => fd.append('images_media_ids', id))
 
     if (isEdit.value) {
       await umkmService.update(route.params.id, fd)
@@ -159,8 +168,9 @@ onMounted(async () => {
         website: d.website || '',
         category: { id: d.category_id || d.category?.id || '', name: d.category?.name || '' },
         description: d.description || '',
-        images: d.images || []
+        images: d.media || d.images || []
       }
+      imagesState.value = [...(d.media || d.images || [])]
     } catch {
       notificationStore.error('Gagal memuat data UMKM')
       router.push('/umkm')

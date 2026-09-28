@@ -74,15 +74,15 @@ var allowedVideoMIME = map[string]bool{
 // feature (and any future document upload). PDF, Word, Excel, PowerPoint
 // and plain text are the supported office formats.
 var allowedDocumentMIME = map[string]bool{
-	"application/pdf":                              true,
-	"application/msword":                           true,
+	"application/pdf":    true,
+	"application/msword": true,
 	"application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
-	"application/vnd.ms-excel":                                               true,
-	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":      true,
-	"application/vnd.ms-powerpoint":                                          true,
+	"application/vnd.ms-excel": true,
+	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":         true,
+	"application/vnd.ms-powerpoint":                                             true,
 	"application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
-	"text/plain":                                                             true,
-	"application/octet-stream":                                               true,
+	"text/plain":               true,
+	"application/octet-stream": true,
 }
 
 func mediaTypeFromMIME(mt string) gallery.MediaType {
@@ -494,11 +494,11 @@ func (s *Service) CreateMedia(ctx context.Context, in UploadMediaInput) (*galler
 	id := uuid.NewString()
 
 	var (
-		storedPath  string
-		thumb       thumbnailResult
-		origWidth   int
-		origHeight  int
-		actualMime  string
+		storedPath   string
+		thumb        thumbnailResult
+		origWidth    int
+		origHeight   int
+		actualMime   string
 		originalName string
 	)
 
@@ -1126,7 +1126,7 @@ func (s *Service) getSignedPublicMedia(ctx context.Context, id string) (*gallery
 			return nil, ErrMediaNotFound
 		}
 		switch *folder.FeatureSlug {
-		case FeatureBanner, FeatureBerita, FeatureStruktur, FeatureUMKM, FeatureFasilitas:
+		case FeatureBanner, FeatureBerita, FeatureStruktur, FeatureUMKM, FeatureFasilitas, FeatureDesa:
 			// feature system folders exposed publicly via signed URLs
 		default:
 			// system/ppid, system/user and any future private feature
@@ -1409,7 +1409,8 @@ func (s *Service) EnsureSystemFolders(ctx context.Context, specs []SystemFolderS
 // GetSystemFolderByFeature returns the seeded system folder for the given
 // feature slug or ErrFolderNotFound. FileStore uses this to find the
 // destination folder for every upload.
-func (s *Service) GetSystemFolderByFeature(ctx context.Context, feature string) (*gallery.Folder, error) {	slug, err := normalizeFeature(feature)
+func (s *Service) GetSystemFolderByFeature(ctx context.Context, feature string) (*gallery.Folder, error) {
+	slug, err := normalizeFeature(feature)
 	if err != nil {
 		return nil, err
 	}

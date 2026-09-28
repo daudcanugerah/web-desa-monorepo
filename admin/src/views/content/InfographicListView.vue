@@ -3,7 +3,6 @@
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold text-secondary-800 dark:text-secondary-200">Infographic Dashboard</h1>
       <div class="flex gap-2">
-        <AppButton variant="secondary" @click="router.push('/infographic/access-logs')">Access Log</AppButton>
         <AppButton variant="primary" @click="router.push('/infographic/create')">Tambah Dashboard</AppButton>
       </div>
     </div>
@@ -113,8 +112,8 @@
     </div>
 
     <!-- Preview Modal -->
-    <AppModal :show="showPreview" title="Preview Dashboard" size="lg" @close="closePreview">
-      <div v-if="previewLoading" class="flex items-center justify-center h-96">
+    <AppModal :show="showPreview" title="Preview Dashboard" size="xl" @close="closePreview">
+      <div v-if="previewLoading" class="flex items-center justify-center h-[70vh]">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
       <div v-else-if="previewToken" class="border rounded overflow-hidden">
@@ -123,17 +122,17 @@
           :token="previewToken"
           with-title="true"
           with-downloads="true"
-          class="w-full h-96"
+          class="w-full h-[70vh]"
         ></metabase-question>
         <metabase-dashboard
           v-else-if="previewComponentType === 'dashboard'"
           :token="previewToken"
           with-title="true"
           with-downloads="true"
-          class="w-full h-96"
+          class="w-full h-[70vh]"
         ></metabase-dashboard>
       </div>
-      <div v-else class="flex items-center justify-center h-96 text-secondary-500 dark:text-secondary-400">
+      <div v-else class="flex items-center justify-center h-[70vh] text-secondary-500 dark:text-secondary-400">
         Gagal memuat preview
       </div>
     </AppModal>
@@ -145,12 +144,12 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import AppButton from '../../components/common/AppButton.vue'
-import AppIconButton from '../../components/common/AppIconButton.vue'
 import AppTable from '../../components/common/AppTable.vue'
 import AppBadge from '../../components/common/AppBadge.vue'
 import AppSelect from '../../components/common/AppSelect.vue'
 import AppPagination from '../../components/common/AppPagination.vue'
 import AppEmptyState from '../../components/common/AppEmptyState.vue'
+import AppModal from '../../components/common/AppModal.vue'
 import { infographicService } from '../../services/infographic.service'
 import { useNotificationStore } from '../../stores/notification'
 import { useConfirm } from '../../composables/useConfirm'
@@ -199,7 +198,6 @@ function resetFilters() {
 
 // Preview modal
 const showPreview = ref(false)
-const previewUrl = ref('')
 const previewToken = ref('')
 const previewComponentType = ref('')
 const previewLoading = ref(false)
@@ -237,21 +235,19 @@ async function fetchInfographics() {
 async function previewDashboard(infographic) {
   showPreview.value = true
   previewLoading.value = true
-  previewUrl.value = ''
   previewToken.value = ''
   previewComponentType.value = infographic.component_type
-  
+
   try {
     // Initialize Metabase if not already done
     await initializeMetabase()
-    
+
     const res = await infographicService.generatePreviewToken({
       component_id: infographic.component_id,
       component_type: infographic.component_type,
     })
-    
+
     previewToken.value = res.data.token
-    previewUrl.value = 'loaded' // Just to indicate preview is ready
   } catch (err) {
     notificationStore.error(err.response?.data?.error || 'Gagal membuat preview')
     closePreview()
@@ -262,7 +258,6 @@ async function previewDashboard(infographic) {
 
 function closePreview() {
   showPreview.value = false
-  previewUrl.value = ''
   previewToken.value = ''
   previewComponentType.value = ''
   previewLoading.value = false

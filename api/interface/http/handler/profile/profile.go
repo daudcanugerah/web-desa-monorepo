@@ -7,10 +7,12 @@ import (
 	"github.com/ggicci/httpin"
 	"github.com/go-chi/chi/v5"
 
+	domainprofile "webdesa/api/domain/profile"
 	"webdesa/api/pkg/response"
 	"webdesa/api/usecase/profile"
 
-	"webdesa/api/pkg/handlerutil")
+	"webdesa/api/pkg/handlerutil"
+)
 
 // ProfileHandler handles HTTP requests for profile management operations.
 // It accepts the profile service from the usecase layer as a dependency.
@@ -28,13 +30,37 @@ func NewProfileHandler(profileService *profile.Service) *ProfileHandler {
 
 // ProfileResponse represents the response for profile data
 type ProfileResponse struct {
-	ID              string `json:"id"`
-	Content         string `json:"content"`
-	SectionName     string `json:"section_name"`
-	SectionEndpoint string `json:"section_endpoint"`
-	State           bool   `json:"state"`
-	CreatedAt       string `json:"created_at"` // ISO 8601 format
-	UpdatedAt       string `json:"updated_at"` // ISO 8601 format
+	ID              string                 `json:"id"`
+	Content         string                 `json:"content"`
+	SectionName     string                 `json:"section_name"`
+	SectionEndpoint string                 `json:"section_endpoint"`
+	State           bool                   `json:"state"`
+	CategoryID      *string                `json:"category_id,omitempty"`
+	Category        *response.CategoryInfo `json:"category,omitempty"`
+	CreatedAt       string                 `json:"created_at"` // ISO 8601 format
+	UpdatedAt       string                 `json:"updated_at"` // ISO 8601 format
+}
+
+// toProfileResponse builds the shared ProfileResponse shape (incl. category).
+func toProfileResponse(p *domainprofile.Profile) ProfileResponse {
+	resp := ProfileResponse{
+		ID:              p.ID,
+		Content:         p.Content,
+		SectionName:     p.SectionName,
+		SectionEndpoint: p.SectionEndpoint,
+		State:           p.State,
+		CategoryID:      p.Category,
+		CreatedAt:       p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:       p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	}
+	if p.Category != nil && *p.Category != "" {
+		name := ""
+		if p.CategoryName != nil {
+			name = *p.CategoryName
+		}
+		resp.Category = &response.CategoryInfo{ID: *p.Category, Name: name}
+	}
+	return resp
 }
 
 // ProfilePaginatedResponse is a paginated list of profile sections
@@ -67,10 +93,11 @@ type ProfileSectionsResponse struct {
 func (h *ProfileHandler) CreateProfile(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Payload struct {
-			Content         string `json:"content" validate:"required,min=1"`
-			SectionName     string `json:"section_name" validate:"required,min=1"`
-			SectionEndpoint string `json:"section_endpoint" validate:"required,min=1"`
-			State           bool   `json:"state"`
+			Content         string  `json:"content" validate:"required,min=1"`
+			SectionName     string  `json:"section_name" validate:"required,min=1"`
+			SectionEndpoint string  `json:"section_endpoint" validate:"required,min=1"`
+			State           bool    `json:"state"`
+			Category        *string `json:"category"`
 		} `in:"body=json"`
 	}
 
@@ -89,6 +116,7 @@ func (h *ProfileHandler) CreateProfile(w http.ResponseWriter, r *http.Request) {
 		SectionName:     req.Payload.SectionName,
 		SectionEndpoint: req.Payload.SectionEndpoint,
 		State:           req.Payload.State,
+		Category:        req.Payload.Category,
 	}
 
 	p, err := h.profileService.Create(r.Context(), serviceInput)
@@ -97,15 +125,7 @@ func (h *ProfileHandler) CreateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := ProfileResponse{
-		ID:              p.ID,
-		Content:         p.Content,
-		SectionName:     p.SectionName,
-		SectionEndpoint: p.SectionEndpoint,
-		State:           p.State,
-		CreatedAt:       p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:       p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-	}
+	resp := toProfileResponse(p)
 
 	response.Success(w, http.StatusCreated, resp)
 }
@@ -138,15 +158,7 @@ func (h *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := ProfileResponse{
-		ID:              p.ID,
-		Content:         p.Content,
-		SectionName:     p.SectionName,
-		SectionEndpoint: p.SectionEndpoint,
-		State:           p.State,
-		CreatedAt:       p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:       p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-	}
+	resp := toProfileResponse(p)
 
 	response.Success(w, http.StatusOK, resp)
 }
@@ -219,15 +231,7 @@ func (h *ProfileHandler) ListProfile(w http.ResponseWriter, r *http.Request) {
 
 	var profileResponses = make([]ProfileResponse, 0)
 	for _, p := range profiles {
-		profileResponses = append(profileResponses, ProfileResponse{
-			ID:              p.ID,
-			Content:         p.Content,
-			SectionName:     p.SectionName,
-			SectionEndpoint: p.SectionEndpoint,
-			State:           p.State,
-			CreatedAt:       p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			UpdatedAt:       p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		})
+		profileResponses = append(profileResponses, toProfileResponse(p))
 	}
 
 	resp := map[string]interface{}{
@@ -263,10 +267,11 @@ func (h *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 	var req struct {
 		Payload struct {
-			Content         string `json:"content" validate:"required,min=1"`
-			SectionName     string `json:"section_name" validate:"required,min=1"`
-			SectionEndpoint string `json:"section_endpoint" validate:"required,min=1"`
-			State           bool   `json:"state"`
+			Content         string  `json:"content" validate:"required,min=1"`
+			SectionName     string  `json:"section_name" validate:"required,min=1"`
+			SectionEndpoint string  `json:"section_endpoint" validate:"required,min=1"`
+			State           bool    `json:"state"`
+			Category        *string `json:"category"`
 		} `in:"body=json"`
 	}
 
@@ -285,6 +290,7 @@ func (h *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		SectionName:     req.Payload.SectionName,
 		SectionEndpoint: req.Payload.SectionEndpoint,
 		State:           req.Payload.State,
+		Category:        req.Payload.Category,
 	}
 
 	p, err := h.profileService.Update(r.Context(), id, serviceInput)
@@ -293,15 +299,7 @@ func (h *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := ProfileResponse{
-		ID:              p.ID,
-		Content:         p.Content,
-		SectionName:     p.SectionName,
-		SectionEndpoint: p.SectionEndpoint,
-		State:           p.State,
-		CreatedAt:       p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:       p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-	}
+	resp := toProfileResponse(p)
 
 	response.Success(w, http.StatusOK, resp)
 }
@@ -411,15 +409,7 @@ func (h *ProfileHandler) ListProfilePublic(w http.ResponseWriter, r *http.Reques
 
 	var profileResponses = make([]ProfileResponse, 0)
 	for _, p := range profiles {
-		profileResponses = append(profileResponses, ProfileResponse{
-			ID:              p.ID,
-			Content:         p.Content,
-			SectionName:     p.SectionName,
-			SectionEndpoint: p.SectionEndpoint,
-			State:           p.State,
-			CreatedAt:       p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			UpdatedAt:       p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		})
+		profileResponses = append(profileResponses, toProfileResponse(p))
 	}
 
 	resp := map[string]interface{}{
@@ -457,15 +447,7 @@ func (h *ProfileHandler) GetProfilePublic(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	resp := ProfileResponse{
-		ID:              p.ID,
-		Content:         p.Content,
-		SectionName:     p.SectionName,
-		SectionEndpoint: p.SectionEndpoint,
-		State:           p.State,
-		CreatedAt:       p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:       p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-	}
+	resp := toProfileResponse(p)
 
 	response.Success(w, http.StatusOK, resp)
 }

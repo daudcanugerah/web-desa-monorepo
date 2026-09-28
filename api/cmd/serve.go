@@ -57,6 +57,7 @@ import (
 	"webdesa/api/usecase/ppid"
 	"webdesa/api/usecase/ppidcategory"
 	"webdesa/api/usecase/profile"
+	"webdesa/api/usecase/profilecategory"
 	"webdesa/api/usecase/role"
 	"webdesa/api/usecase/struktur"
 	"webdesa/api/usecase/umkm"
@@ -143,6 +144,7 @@ func runServer(ctx context.Context) error {
 	strukturRepo := repopg.NewStrukturRepository(db)
 	desaRepo := repopg.NewDesaRepository(db)
 	profileRepo := repopg.NewProfileRepository(db)
+	profileCategoryRepo := repopg.NewProfileCategoryRepository(db)
 	infographicRepo := repopg.NewInfographicRepository(db)
 	infographicCategoryRepo := repopg.NewInfographicCategoryRepository(db)
 	// backupRepo := repopg.NewBackupRepository(db) // Will be used when backup service is enabled
@@ -202,6 +204,16 @@ func runServer(ctx context.Context) error {
 	// struktur, umkm, fasilitas, user, ppid) routes its uploads into the
 	// matching system folder instead of the legacy public directory.
 	fileStore := galleryusecase.NewFileStoreService(galleryService)
+
+	// Ensure the canonical gallery system folders exist at startup. Idempotent
+	// (CreateSystemFolder upserts on the feature-slug unique index), and needed
+	// so feature slugs added after the last `make seed` (e.g. system/desa) are
+	// available without a manual reseed. Skipped when no user exists yet.
+	if owner, err := galleryService.BootstrapSystemFolderOwner(context.Background()); err == nil && owner != "" {
+		if _, err := galleryService.EnsureSystemFolders(context.Background(), galleryusecase.SystemFolderSpecs(), owner); err != nil {
+			mainOtel.Log.Error(context.Background(), "failed to ensure gallery system folders", "error", err.Error())
+		}
+	}
 
 	// Initialize use case services (accept repository interfaces, return concrete service structs)
 	// Dependencies: services → repository interfaces → domain
@@ -271,7 +283,8 @@ func runServer(ctx context.Context) error {
 	}, &systemConfig.SMTP)
 	ppidService := ppid.NewServiceWithSignedURL(ppidRepo, fileStore, ppidEmailSvc, clk, systemConfig.JWT.Secret, ppidEmailConfig, ppidCategoryService, signedURLService)
 
-	profileService := profile.NewService(profileRepo, clk)
+	profileCategoryService := profilecategory.NewService(profileCategoryRepo, clk)
+	profileService := profile.NewService(profileRepo, clk, profileCategoryService)
 	infographicAccessLogRepo := repopg.NewInfographicAccessLogRepository(db)
 	infographicService := infographic.NewService(infographicRepo, clk, systemConfig.Metabase, infographicCategoryService, infographicAccessLogRepo)
 	strukturService := struktur.NewService(strukturRepo, fileStore, clk)
@@ -316,8 +329,10 @@ func runServer(ctx context.Context) error {
 	ppidUploadHandler := ppidhandler.NewPPIDUploadHandler(fileStore, mainOtel.Log, signedURLService, systemConfig.Gallery.IsSignedURLsEnabled())
 	strukturHandler := strukturhandler.NewStrukturHandler(strukturService, signedURLService, systemConfig.Gallery.IsSignedURLsEnabled())
 	strukturUploadHandler := strukturhandler.NewStrukturUploadHandler(fileStore, mainOtel.Log)
-	desaHandler := desahandler.NewDesaHandler(desaService)
+	desaHandler := desahandler.NewDesaHandler(desaService, signedURLService, systemConfig.Gallery.IsSignedURLsEnabled())
+	desaUploadHandler := desahandler.NewDesaUploadHandler(fileStore, mainOtel.Log)
 	profileHandler := profilehandler.NewProfileHandler(profileService)
+	profileCategoryHandler := profilehandler.NewProfileCategoryHandler(profileCategoryService)
 	infographicHandler := infographichandler.NewInfographicHandler(infographicService)
 	infographicCategoryHandler := infographiccategoryhandler.NewInfographicCategoryHandler(infographicCategoryService)
 	healthHandler := healthhandler.NewHealthHandler()
@@ -350,7 +365,9 @@ func runServer(ctx context.Context) error {
 		StrukturHandler:            strukturHandler,
 		StrukturUploadHandler:      strukturUploadHandler,
 		DesaHandler:                desaHandler,
+		DesaUploadHandler:          desaUploadHandler,
 		ProfileHandler:             profileHandler,
+		ProfileCategoryHandler:     profileCategoryHandler,
 		InfographicHandler:         infographicHandler,
 		InfographicCategoryHandler: infographicCategoryHandler,
 		HealthHandler:              healthHandler,

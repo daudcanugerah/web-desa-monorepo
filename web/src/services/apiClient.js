@@ -3,7 +3,16 @@
  * Centralized fetch-based HTTP client for all API calls
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+const RAW_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/api/v1';
+
+// Ensure the base URL always carries the `/api/v1` prefix. Accepts either
+// `http://host:port` or `http://host:port/api/v1` from VITE_API_BASE_URL.
+const normalizeBaseUrl = (base) => {
+  const trimmed = String(base).replace(/\/+$/, '');
+  return /\/api\/v\d+$/.test(trimmed) ? trimmed : `${trimmed}/api/v1`;
+};
+
+const API_BASE_URL = normalizeBaseUrl(RAW_API_BASE_URL);
 
 const TOKEN_KEY = 'auth_token';
 

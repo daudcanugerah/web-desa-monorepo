@@ -18,6 +18,8 @@ type Profile struct {
 	SectionName     string    `db:"section_name"`
 	SectionEndpoint string    `db:"section_endpoint"`
 	State           bool      `db:"state"`
+	Category        *string   `db:"category"`      // FK to profile_categories (nullable)
+	CategoryName    *string   `db:"category_name"` // joined label (read-only)
 	CreatedAt       time.Time `db:"created_at"`
 	UpdatedAt       time.Time `db:"updated_at"`
 }

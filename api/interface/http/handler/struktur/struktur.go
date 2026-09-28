@@ -69,24 +69,18 @@ func (h *StrukturHandler) profileMediaFor(mediaID *string, public bool) *respons
 	return &response.MediaInfo{MediaID: id, URL: url, ThumbnailURL: &thumb}
 }
 
-func profileImageURLFor(mediaID *string) *string {
-	return profileImageURLForScoped(mediaID, false)
-}
-
-// profileImageURLForScoped builds the binary HTTP path for a struktur
-// profile image. Public scopes use the feature-scoped public stream route
-// so anonymous visitors can render system-folder media.
-func profileImageURLForScoped(mediaID *string, public bool) *string {
-	if mediaID == nil || *mediaID == "" {
+// profileImageURL returns the streamable URL for a struktur profile image.
+// It mirrors the profile_media.url field so the deprecated profile_image_url
+// stays functional: the legacy per-scope gallery/feature binary routes were
+// removed in Task 7.4, and the unified /api/v1/media/{id}/content?jwt= route
+// is now the only way to stream the binary.
+func (h *StrukturHandler) profileImageURL(mediaID *string, public bool) *string {
+	m := h.profileMediaFor(mediaID, public)
+	if m == nil || m.URL == "" {
 		return nil
 	}
-	var u string
-	if public {
-		u = galleryuc.FeatureURLFor(galleryuc.FeatureStruktur, "content", *mediaID)
-	} else {
-		u = galleryuc.URLFor(galleryuc.URLScopeAdmin, "content", *mediaID)
-	}
-	return &u
+	url := m.URL
+	return &url
 }
 
 // StrukturResponse represents the response for struktur data
@@ -204,7 +198,7 @@ func (h *StrukturHandler) CreateStruktur(w http.ResponseWriter, r *http.Request)
 		Email:           st.Email,
 		Phone:           st.Phone,
 		Description:     st.Description,
-		ProfileImageURL: profileImageURLFor(st.ProfileImageMediaID),
+		ProfileImageURL: h.profileImageURL(st.ProfileImageMediaID, false),
 		ProfileMedia:    h.profileMediaFor(st.ProfileImageMediaID, false),
 		CreatedAt:       st.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:       st.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
@@ -271,7 +265,7 @@ func (h *StrukturHandler) ListStruktur(w http.ResponseWriter, r *http.Request) {
 			Email:           st.Email,
 			Phone:           st.Phone,
 			Description:     st.Description,
-			ProfileImageURL: profileImageURLFor(st.ProfileImageMediaID),
+			ProfileImageURL: h.profileImageURL(st.ProfileImageMediaID, false),
 		ProfileMedia:    h.profileMediaFor(st.ProfileImageMediaID, false),
 			CreatedAt:       st.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			UpdatedAt:       st.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
@@ -331,7 +325,7 @@ func (h *StrukturHandler) GetStruktur(w http.ResponseWriter, r *http.Request) {
 		Email:           st.Email,
 		Phone:           st.Phone,
 		Description:     st.Description,
-		ProfileImageURL: profileImageURLFor(st.ProfileImageMediaID),
+		ProfileImageURL: h.profileImageURL(st.ProfileImageMediaID, false),
 		ProfileMedia:    h.profileMediaFor(st.ProfileImageMediaID, false),
 		CreatedAt:       st.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:       st.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
@@ -445,7 +439,7 @@ func (h *StrukturHandler) UpdateStruktur(w http.ResponseWriter, r *http.Request)
 		Email:           st.Email,
 		Phone:           st.Phone,
 		Description:     st.Description,
-		ProfileImageURL: profileImageURLFor(st.ProfileImageMediaID),
+		ProfileImageURL: h.profileImageURL(st.ProfileImageMediaID, false),
 		ProfileMedia:    h.profileMediaFor(st.ProfileImageMediaID, false),
 		CreatedAt:       st.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:       st.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
@@ -556,7 +550,7 @@ func (h *StrukturHandler) ListStrukturPublic(w http.ResponseWriter, r *http.Requ
 			Email:           s.Email,
 			Phone:           s.Phone,
 			Description:     s.Description,
-			ProfileImageURL: profileImageURLForScoped(s.ProfileImageMediaID, true),
+			ProfileImageURL: h.profileImageURL(s.ProfileImageMediaID, true),
 		ProfileMedia:    h.profileMediaFor(s.ProfileImageMediaID, true),
 			CreatedAt:       s.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			UpdatedAt:       s.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
@@ -613,7 +607,7 @@ func (h *StrukturHandler) GetStrukturPublic(w http.ResponseWriter, r *http.Reque
 		Email:           s.Email,
 		Phone:           s.Phone,
 		Description:     s.Description,
-		ProfileImageURL: profileImageURLForScoped(s.ProfileImageMediaID, true),
+		ProfileImageURL: h.profileImageURL(s.ProfileImageMediaID, true),
 		ProfileMedia:    h.profileMediaFor(s.ProfileImageMediaID, true),
 		CreatedAt:       s.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:       s.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),

@@ -254,7 +254,7 @@ r.With(MaxBodySize(50 << 20)).Post("/berita/upload-media", ...)
 
 ---
 
-## 7. JWT Refresh Tokens Don't Rotate 🟡 MEDIUM
+## 7. JWT Refreshs Don't Rotate 🟡 MEDIUM
 
 **Location:** `pkg/jwt/jwt.go:34-41`
 

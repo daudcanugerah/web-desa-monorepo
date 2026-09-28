@@ -66,7 +66,7 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (v) => ['sm', 'md', 'lg'].includes(v),
+    validator: (v) => ['sm', 'md', 'lg', 'xl'].includes(v),
   },
 })
 
@@ -79,6 +79,7 @@ const sizeClass = computed(() => ({
   'max-w-sm': props.size === 'sm',
   'max-w-lg': props.size === 'md',
   'max-w-2xl': props.size === 'lg',
+  'max-w-5xl': props.size === 'xl',
 }))
 
 function handleKeydown(e) {

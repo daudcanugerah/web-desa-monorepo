@@ -68,7 +68,7 @@ func normalizeFeature(slug string) (string, error) {
 	s := strings.TrimSpace(strings.ToLower(slug))
 	switch s {
 	case FeatureBanner, FeatureBerita, FeatureStruktur, FeatureUMKM,
-		FeatureFasilitas, FeatureUser, FeaturePPID:
+		FeatureFasilitas, FeatureUser, FeaturePPID, FeatureDesa:
 		return s, nil
 	}
 	return "", ErrUnknownFeature

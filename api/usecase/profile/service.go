@@ -15,16 +15,20 @@ import (
 // It accepts interfaces (Repository) and returns concrete structs (Profile).
 // This follows the "accept interfaces, return structs" Go idiom.
 type Service struct {
-	repo  Repository
-	clock clock.Clock
+	repo       Repository
+	clock      clock.Clock
+	categories CategoryLookup
 }
 
 // NewService creates a new profile management service.
 // Dependencies are injected via constructor following Clean Architecture principles.
-func NewService(repo Repository, clk clock.Clock) *Service {
+// categories may be nil, in which case category IDs are not validated here
+// (the DB FK still enforces integrity).
+func NewService(repo Repository, clk clock.Clock, categories CategoryLookup) *Service {
 	return &Service{
-		repo:  repo,
-		clock: clk,
+		repo:       repo,
+		clock:      clk,
+		categories: categories,
 	}
 }
 
@@ -34,6 +38,7 @@ type CreateProfileInput struct {
 	SectionName     string
 	SectionEndpoint string
 	State           bool
+	Category        *string
 }
 
 // UpdateProfileInput represents the input for updating a profile
@@ -42,6 +47,21 @@ type UpdateProfileInput struct {
 	SectionName     string
 	SectionEndpoint string
 	State           bool
+	Category        *string
+}
+
+// validateCategory checks that a non-empty category ID exists and returns its
+// name (empty when no category is set), so responses can echo the label
+// without a second read.
+func (s *Service) validateCategory(ctx context.Context, category *string) (string, error) {
+	if category == nil || *category == "" || s.categories == nil {
+		return "", nil
+	}
+	c, err := s.categories.FindByID(ctx, *category)
+	if err != nil {
+		return "", fmt.Errorf("invalid category: %w", err)
+	}
+	return c.Name, nil
 }
 
 // ListProfilesInput represents the input for listing profiles
@@ -56,6 +76,11 @@ type ListProfilesInput struct {
 // Create creates a new profile.
 // Returns concrete Profile struct.
 func (s *Service) Create(ctx context.Context, input CreateProfileInput) (*profile.Profile, error) {
+	categoryName, err := s.validateCategory(ctx, input.Category)
+	if err != nil {
+		return nil, err
+	}
+
 	now := s.clock.Now()
 	p := &profile.Profile{
 		ID:              uuid.New().String(),
@@ -63,8 +88,12 @@ func (s *Service) Create(ctx context.Context, input CreateProfileInput) (*profil
 		SectionName:     input.SectionName,
 		SectionEndpoint: input.SectionEndpoint,
 		State:           input.State,
+		Category:        input.Category,
 		CreatedAt:       now,
 		UpdatedAt:       now,
+	}
+	if categoryName != "" {
+		p.CategoryName = &categoryName
 	}
 
 	// Validate domain invariants
@@ -114,6 +143,11 @@ func (s *Service) List(ctx context.Context, input ListProfilesInput) ([]*profile
 // Update updates an existing profile.
 // Returns updated Profile struct.
 func (s *Service) Update(ctx context.Context, id string, input UpdateProfileInput) (*profile.Profile, error) {
+	categoryName, err := s.validateCategory(ctx, input.Category)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get existing profile
 	p, err := s.repo.FindByID(ctx, id)
 	if err != nil {
@@ -125,6 +159,12 @@ func (s *Service) Update(ctx context.Context, id string, input UpdateProfileInpu
 	p.SectionName = input.SectionName
 	p.SectionEndpoint = input.SectionEndpoint
 	p.State = input.State
+	p.Category = input.Category
+	if categoryName != "" {
+		p.CategoryName = &categoryName
+	} else {
+		p.CategoryName = nil
+	}
 	p.UpdatedAt = s.clock.Now()
 
 	// Validate domain invariants

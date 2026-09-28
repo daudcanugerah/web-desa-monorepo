@@ -27,11 +27,15 @@ Fix the JWT signing gap: the existing `/media/{id}/content?jwt=...` and `/media/
 
 Without one of these, every gallery thumbnail and full-size image returns 401.
 
-## 2. Extend `desa.DesaResponse` (P0 — Home stats all fallback)
+## 2. Extend `desa.DesaResponse` (DONE)
 
-Spec currently has only `address, description, email, name, phone, updated_at, vision_mission, website`. The frontend reads fields that aren't there, so every Home stats card and the Sambutan section hit the FAKE_* fallback strings.
+Implemented: `kepala_desa`, `kepala_desa_message`, `motto`, `kecamatan`,
+`kabupaten`, `provinsi`, `jumlah_penduduk`, `jumlah_kk`, `jumlah_dusun`,
+`jumlah_rt`, `jumlah_rw`, `jumlah_umkm` are now part of `desa.DesaResponse`
+and editable via the admin **Info Umum** (`/profile`) form. Beranda reads them
+directly; the `FAKE_*` fallbacks and `VITE_FEATURE_DESA_EXTENDED` flag are gone.
 
-Add to `desa.DesaResponse`:
+Original request (historical):
 
 ```yaml
 kepala_desa:
@@ -129,7 +133,7 @@ Until backend ships the items above, the frontend gates related UI behind env fl
 | Flag | Default | When true |
 |---|---|---|
 | `VITE_FEATURE_GALLERY_PUBLIC` | `false` | Galeri pages and nav link render; calls hit `/public/gallery/*` |
-| `VITE_FEATURE_DESA_EXTENDED` | `false` | Home Sambutan/stats rely on `desa.kepala_desa`, `motto`, `jumlah_*`, etc. (else fall back to FAKE_*) |
+
 | `VITE_FEATURE_BERITA_SEARCH` | `false` | Berita list sends `?q=` to `/public/berita/list` (else client-side filter only) |
 | `VITE_FEATURE_INFOGRAPHIC_SORT` | `false` | Infografik list sends `?sort=&order=` (else backend-default order) |
 
@@ -139,4 +143,4 @@ Flip a flag by setting the env var in `.env.local` or CI, then redeploy. No code
 
 - The frontend has unused service functions (`getPublicBeritaCategories`, `getPublicFasilitasById`, etc.) removed in this branch. If you intend them for a future admin panel, do not add frontend callers until then.
 - `useDesaInfo` caches the village info module-globally. If you ever add auth, invalidate this cache on login/logout.
-- `Peta.vue` uses hardcoded polygon coords (`src/pages/Peta.vue:235`) and ignores `public/area-desa-poly.json`. Frontend cleanup, not backend.
+- `Peta.vue` loads the village polygon at runtime from `public/area-desa-poly.json` (no longer inlined). Frontend only, no backend dependency.

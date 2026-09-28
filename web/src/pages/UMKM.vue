@@ -1,48 +1,54 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <PageHeader :title="`UMKM ${desaName}`" subtitle="Dukung usaha mikro kecil menengah di desa kita" />
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Header -->
+      <div class="mb-5">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900">UMKM {{ desaName }}</h1>
+        <p class="text-xs text-gray-500 mt-0.5">Dukung usaha mikro kecil menengah di desa kita</p>
+      </div>
 
       <LoadingSpinner v-if="loading" />
 
       <div v-else-if="data && data.length > 0">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Filter bar -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1.5">Cari UMKM</label>
+              <label class="block text-[11px] font-medium text-gray-700 mb-1">Cari UMKM</label>
               <SearchInput
                 v-model="searchQuery"
                 placeholder="Nama, pemilik, atau alamat..."
+                size="sm"
                 @clear="resetFilters"
               />
             </div>
             <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1.5">Kategori</label>
+              <label class="block text-[11px] font-medium text-gray-700 mb-1">Kategori</label>
               <div class="relative">
                 <select
                   v-model="selectedCategory"
-                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50 appearance-none transition-colors"
+                  class="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50 appearance-none transition-colors"
                 >
                   <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
                 </select>
-                <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div class="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between">
-            <p class="text-xs text-gray-600">
+          <div class="mt-3 pt-2.5 border-t border-gray-200 flex items-center justify-between">
+            <p class="text-[11px] text-gray-600">
               Menampilkan <span class="font-bold text-emerald-600">{{ startIndex + 1 }}-{{ Math.min(endIndex, filteredUMKM.length) }}</span> dari <span class="font-bold">{{ filteredUMKM.length }}</span> UMKM
               <span v-if="filteredUMKM.length !== data.length" class="text-gray-400">({{ data.length }} total)</span>
             </p>
             <button
               v-if="hasActiveFilter"
               @click="resetFilters"
-              class="text-xs text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1.5"
+              class="text-[11px] text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1"
             >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
               Reset Filter
@@ -59,53 +65,54 @@
           />
         </div>
 
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Grid — Google-News-style cards -->
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <article
             v-for="business in paginatedUMKM"
             :key="business.id"
-            class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all border border-gray-200 overflow-hidden flex flex-col hover:-translate-y-1 duration-300"
+            class="h-full flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5 duration-300"
           >
-            <div class="aspect-video bg-gradient-to-br from-emerald-100 to-teal-100 relative overflow-hidden">
+            <div class="aspect-[16/10] bg-gray-100 overflow-hidden">
               <img
                 v-if="businessMediaUrl(business)"
                 :src="businessMediaUrl(business)"
                 :alt="business.name"
                 loading="lazy"
-                class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                class="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                 @error="handleImageError"
               />
-              <div v-else class="absolute inset-0 flex items-center justify-center">
-                <svg class="w-16 h-16 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div v-else class="w-full h-full flex items-center justify-center">
+                <svg class="w-12 h-12 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
               </div>
             </div>
-            <div class="p-5 flex flex-col flex-grow">
-              <span class="inline-block bg-emerald-100 text-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-medium mb-2 self-start">
+            <div class="p-3.5 flex flex-col flex-grow">
+              <span class="inline-block bg-emerald-100 text-emerald-800 text-[11px] px-2 py-0.5 rounded-full font-medium mb-2 self-start">
                 {{ business.category || 'Umum' }}
               </span>
-              <h2 class="text-lg font-bold text-gray-900 mb-2">{{ business.name }}</h2>
-              <p class="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow">{{ business.description }}</p>
+              <h2 class="text-base font-bold text-gray-900 leading-snug mb-1.5 line-clamp-2">{{ business.name }}</h2>
+              <p class="text-gray-600 text-xs mb-3 line-clamp-2 flex-grow">{{ business.description }}</p>
 
-              <div class="space-y-2 pt-3 border-t border-gray-100">
-                <div v-if="business.owner" class="flex items-center text-xs text-gray-700">
-                  <Icon name="user" class="text-gray-400 mr-2" />
+              <div class="space-y-1.5 pt-2.5 border-t border-gray-100">
+                <div v-if="business.owner" class="flex items-center text-[11px] text-gray-700">
+                  <Icon name="user" class="text-gray-400 mr-1.5" />
                   <span class="truncate">{{ business.owner }}</span>
                 </div>
-                <div v-if="business.phone" class="flex items-center text-xs text-gray-700">
-                  <Icon name="phone" class="text-gray-400 mr-2" />
+                <div v-if="business.phone" class="flex items-center text-[11px] text-gray-700">
+                  <Icon name="phone" class="text-gray-400 mr-1.5" />
                   <a :href="`tel:${business.phone}`" class="hover:text-emerald-600 truncate">{{ business.phone }}</a>
                 </div>
-                <div v-if="business.email" class="flex items-center text-xs text-gray-700">
-                  <Icon name="mail" class="text-gray-400 mr-2" />
+                <div v-if="business.email" class="flex items-center text-[11px] text-gray-700">
+                  <Icon name="mail" class="text-gray-400 mr-1.5" />
                   <a :href="`mailto:${business.email}`" class="hover:text-emerald-600 truncate">{{ business.email }}</a>
                 </div>
-                <div v-if="business.website" class="flex items-center text-xs text-gray-700">
-                  <Icon name="globe" class="text-gray-400 mr-2" />
+                <div v-if="business.website" class="flex items-center text-[11px] text-gray-700">
+                  <Icon name="globe" class="text-gray-400 mr-1.5" />
                   <a :href="business.website" target="_blank" rel="noopener" class="hover:text-emerald-600 truncate">{{ business.website.replace(/^https?:\/\//, '') }}</a>
                 </div>
-                <div v-if="business.address" class="flex items-start text-xs text-gray-700">
-                  <Icon name="pin" class="text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
+                <div v-if="business.address" class="flex items-start text-[11px] text-gray-700">
+                  <Icon name="pin" class="text-gray-400 mr-1.5 mt-0.5 flex-shrink-0" />
                   <span class="line-clamp-2">{{ business.address }}</span>
                 </div>
               </div>
@@ -134,7 +141,6 @@ import { getPublicUMKMList, mediaUrl } from '../services/desaService'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
 import EmptyState from '../components/common/EmptyState.vue'
 import SearchInput from '../components/common/SearchInput.vue'
-import PageHeader from '../components/common/PageHeader.vue'
 import Pagination from '../components/common/Pagination.vue'
 import Icon from '../components/common/Icon.vue'
 import { useDesaInfo } from '../composables/useDesaInfo'
@@ -145,7 +151,6 @@ export default {
     LoadingSpinner,
     EmptyState,
     SearchInput,
-    PageHeader,
     Pagination,
     Icon
   },

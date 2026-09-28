@@ -1,13 +1,13 @@
 <template>
-  <div class="max-w-screen-2xl mx-auto">
+  <div class="max-w-2xl mx-auto">
     <div class="flex items-center gap-3 mb-6">
       <AppBackButton />
       <h1 class="text-2xl font-bold text-secondary-800 dark:text-secondary-100">{{ isEdit ? 'Edit Dashboard' : 'Tambah Dashboard' }}</h1>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-5 gap-6">
+    <div>
       <!-- Form -->
-      <div class="lg:col-span-1 xl:col-span-2 bg-white dark:bg-secondary-800 rounded-lg shadow-sm border border-secondary-200 dark:border-secondary-700 p-6 space-y-6">
+      <div class="bg-white dark:bg-secondary-800 rounded-lg shadow-sm border border-secondary-200 dark:border-secondary-700 p-6 space-y-6">
         <div>
           <label class="block text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">Nama Bagian <span class="text-red-500">*</span></label>
           <input
@@ -111,40 +111,33 @@
           </AppButton>
         </div>
       </div>
-
-      <!-- Preview -->
-      <div class="lg:col-span-1 xl:col-span-3 bg-white dark:bg-secondary-800 rounded-lg shadow-sm border border-secondary-200 dark:border-secondary-700 p-6">
-        <h3 class="text-lg font-semibold mb-4">Preview Dashboard</h3>
-        
-        <div v-if="previewLoading" class="flex items-center justify-center h-96">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-        
-        <div v-else-if="previewUrl" class="border rounded overflow-hidden">
-          <metabase-question
-            v-if="form.component_type === 'question'"
-            :token="previewToken"
-            with-title="true"
-            with-downloads="true"
-            class="w-full h-96"
-          ></metabase-question>
-          <metabase-dashboard
-            v-else-if="form.component_type === 'dashboard'"
-            :token="previewToken"
-            with-title="true"
-            with-downloads="true"
-            class="w-full h-96"
-          ></metabase-dashboard>
-        </div>
-        
-        <div v-else class="flex flex-col items-center justify-center h-96 text-secondary-500 dark:text-secondary-400">
-          <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-          </svg>
-          <p>Klik tombol Preview untuk melihat dashboard</p>
-        </div>
-      </div>
     </div>
+
+    <!-- Preview popup -->
+    <AppModal :show="showPreview" title="Preview Dashboard" size="xl" @close="closePreview">
+      <div v-if="previewLoading" class="flex items-center justify-center h-[70vh]">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+      <div v-else-if="previewToken" class="border rounded overflow-hidden">
+        <metabase-question
+          v-if="form.component_type === 'question'"
+          :token="previewToken"
+          with-title="true"
+          with-downloads="true"
+          class="w-full h-[70vh]"
+        ></metabase-question>
+        <metabase-dashboard
+          v-else-if="form.component_type === 'dashboard'"
+          :token="previewToken"
+          with-title="true"
+          with-downloads="true"
+          class="w-full h-[70vh]"
+        ></metabase-dashboard>
+      </div>
+      <div v-else class="flex items-center justify-center h-[70vh] text-secondary-500 dark:text-secondary-400">
+        Gagal memuat preview
+      </div>
+    </AppModal>
 
     <CategoryManagerModal
       :show="showCategoryModal"
@@ -164,6 +157,7 @@ import { useNotificationStore } from '../../stores/notification'
 import AppButton from '../../components/common/AppButton.vue'
 import AppSelect from '../../components/common/AppSelect.vue'
 import AppBackButton from '../../components/common/AppBackButton.vue'
+import AppModal from '../../components/common/AppModal.vue'
 import AppCategoryPicker from '../../components/common/AppCategoryPicker.vue'
 import CategoryManagerModal from '../../components/common/CategoryManagerModal.vue'
 import { useCategoryInput } from '../../composables/useCategoryInput'
@@ -209,8 +203,8 @@ watch(
   },
 )
 
-// Preview
-const previewUrl = ref('')
+// Preview (shown in a popup modal)
+const showPreview = ref(false)
 const previewToken = ref('')
 const previewLoading = ref(false)
 
@@ -240,27 +234,33 @@ function validate() {
 
 async function generatePreview() {
   if (!canPreview.value) return
-  
+
+  showPreview.value = true
   previewLoading.value = true
-  previewUrl.value = ''
   previewToken.value = ''
-  
+
   try {
     // Initialize Metabase if not already done
     await initializeMetabase()
-    
+
     const res = await infographicService.generatePreviewToken({
       component_id: form.value.component_id,
       component_type: form.value.component_type,
     })
-    
+
     previewToken.value = res.data.token
-    previewUrl.value = 'loaded' // Just to indicate preview is ready
   } catch (err) {
     notificationStore.error(err.response?.data?.error || 'Gagal membuat preview')
+    closePreview()
   } finally {
     previewLoading.value = false
   }
+}
+
+function closePreview() {
+  showPreview.value = false
+  previewToken.value = ''
+  previewLoading.value = false
 }
 
 async function handleSubmit() {
@@ -294,13 +294,6 @@ async function handleSubmit() {
   }
 }
 
-// Auto-generate preview when component info changes
-watch([() => form.value.component_id, () => form.value.component_type], () => {
-  if (canPreview.value && isEdit.value) {
-    generatePreview()
-  }
-})
-
 onMounted(async () => {
   // Initialize Metabase
   try {
@@ -327,11 +320,7 @@ onMounted(async () => {
         },
       }
 
-      // Auto-load preview for existing infographic
-      if (canPreview.value) {
-        generatePreview()
-      }
-    } catch (err) {
+      } catch (err) {
       notificationStore.error('Gagal memuat data dashboard')
       router.push('/infographic')
     }

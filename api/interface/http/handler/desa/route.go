@@ -7,7 +7,7 @@ import (
 )
 
 // RegisterRoutes mounts the village profile endpoints.
-func RegisterRoutes(r chi.Router, h *DesaHandler, mw *middleware.MiddlewareDeps, scope middleware.RouteScope) {
+func RegisterRoutes(r chi.Router, h *DesaHandler, up *DesaUploadHandler, mw *middleware.MiddlewareDeps, scope middleware.RouteScope) {
 	switch scope {
 	case middleware.ScopePublic:
 		r.Get("/public/desa", h.GetDesaPublic)
@@ -20,6 +20,7 @@ func RegisterRoutes(r chi.Router, h *DesaHandler, mw *middleware.MiddlewareDeps,
 		r.Group(func(r chi.Router) {
 			r.Use(mw.RBAC("desa", "write"))
 			r.Put("/desa", h.UpdateDesa)
+			r.Post("/desa/upload-media", up.UploadMedia)
 		})
 	}
 }

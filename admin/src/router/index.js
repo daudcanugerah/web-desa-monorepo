@@ -57,7 +57,7 @@ const routes = [
       { path: 'infographic', name: 'Infographic', component: () => import('../views/content/InfographicListView.vue'), meta: { breadcrumb: 'Infographic Dashboard' } },
       { path: 'infographic/create', name: 'InfographicCreate', component: () => import('../views/content/InfographicFormView.vue'), meta: { breadcrumb: 'Tambah Dashboard' } },
       { path: 'infographic/:id/edit', name: 'InfographicEdit', component: () => import('../views/content/InfographicFormView.vue'), meta: { breadcrumb: 'Edit Dashboard' } },
-      { path: 'infographic/access-logs', name: 'InfographicAccessLogs', component: () => import('../views/content/InfographicAccessLogsView.vue'), meta: { breadcrumb: 'Access Log Infographic' } },
+      
       { path: 'me', name: 'MyProfile', component: () => import('../views/users/MyProfileView.vue'), meta: { breadcrumb: 'Profil Saya' } },
     ],
   },

@@ -22,8 +22,8 @@ func (l *stubListener) OnMediaDeleted(_ context.Context, mediaID string) {
 }
 
 type stubFileStorePrune struct {
-	mu      sync.Mutex
-	known   map[string]bool
+	mu    sync.Mutex
+	known map[string]bool
 }
 
 func (f *stubFileStorePrune) SaveImage(_ context.Context, _ string, _ FileInput) (SavedFile, error) {

@@ -74,7 +74,7 @@
     >
       <div
         v-if="open"
-        class="absolute z-30 mt-1 w-full bg-white dark:bg-secondary-800 rounded-lg shadow-lg border border-secondary-200 dark:border-secondary-700 overflow-hidden"
+        class="absolute z-40 mt-1 w-full bg-white dark:bg-secondary-800 rounded-lg shadow-lg border border-secondary-200 dark:border-secondary-700 overflow-hidden"
         role="listbox"
         :aria-label="label || 'Kategori'"
       >

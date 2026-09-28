@@ -32,16 +32,33 @@ const normalize = (item) => {
 
 const normalizeList = (items) => Array.isArray(items) ? items.map(normalize) : []
 
+// Fetches every page of a paginated public list endpoint, capped by `pageSize`
+// (server MaxLimit is 100) and `maxPages` as a safety valve.
+const fetchAllPages = async (endpoint, key, params = {}, { pageSize = 100, maxPages = 50 } = {}) => {
+  const first = await apiClient.get(endpoint, { params: { ...params, page: 1, limit: pageSize } })
+  const firstPage = unwrapPaginated(first, key)
+  let items = firstPage.items
+  const pagination = firstPage.pagination
+  const totalPages = Number(pagination?.total_pages) || 1
+  const pagesToFetch = Math.min(totalPages, maxPages)
+  for (let page = 2; page <= pagesToFetch; page++) {
+    const res = await apiClient.get(endpoint, { params: { ...params, page, limit: pageSize } })
+    items = items.concat(unwrapPaginated(res, key).items)
+  }
+  return { items, pagination }
+}
+
 export const mediaUrl = (item, variant = 'single') => {
   if (!item) return ''
-  const m = item.media
+  // `profile_media` is the struktur-specific single-media field.
+  const m = item.media || item.profile_media
   if (variant === 'array') {
     if (Array.isArray(m) && m.length > 0) return resolveGalleryAssetUrl(m[0]?.url || m[0]?.thumbnail_url || '')
-    if (Array.isArray(item.images) && item.images.length > 0) return item.images[0]
+    if (Array.isArray(item.images) && item.images.length > 0) return resolveGalleryAssetUrl(item.images[0])
     return ''
   }
   if (m && !Array.isArray(m)) return resolveGalleryAssetUrl(m.url || m.thumbnail_url || '')
-  return item.image_url || item.profile_image_url || ''
+  return resolveGalleryAssetUrl(item.image_url || item.profile_image_url || '')
 }
 
 export const thumbnailUrl = (item) => {
@@ -83,7 +100,15 @@ const handleError = (scope, err, fallback) => {
 const buildFileUrl = (filename) => {
   if (!filename) return ''
   if (/^https?:\/\//i.test(filename) || filename.startsWith('/')) return filename
-  return `${API_BASE_URL.replace(/\/+$/, '')}/files/${filename}`
+  // `/files/{name}` is mounted at the API root, not under `/api/v1`.
+  const origin = (() => {
+    try {
+      return new URL(API_BASE_URL).origin
+    } catch {
+      return API_BASE_URL.replace(/\/api\/v\d+\/?$/, '').replace(/\/+$/, '')
+    }
+  })()
+  return `${origin}/files/${filename}`
 }
 
 // ============ Banners ============
@@ -105,6 +130,23 @@ export const getPublicBeritaList = async (params = {}) => {
     return normalizeList(unwrapList(response, 'berita'))
   } catch (error) {
     return handleError('berita/list', error, [])
+  }
+}
+
+// Resolves the UUID of a berita category by name (case-insensitive), so the
+// Home pengumuman ticker and other views can filter by a known category
+// without hardcoding its id.
+export const getPublicBeritaCategoryIdByName = async (name) => {
+  if (!name) return null
+  try {
+    const response = await apiClient.get('/public/berita/categories', { params: { limit: 100 } })
+    const data = unwrapData(response)
+    const list = Array.isArray(data?.categories) ? data.categories : unwrapList(response, 'categories')
+    const target = String(name).trim().toLowerCase()
+    const found = (list || []).find(c => String(c.name || '').trim().toLowerCase() === target)
+    return found?.id || null
+  } catch (error) {
+    return handleError('berita/categories', error, null)
   }
 }
 
@@ -135,6 +177,29 @@ export const getPublicFasilitasList = async (params = {}) => {
     return normalizeList(unwrapList(response, 'fasilitas'))
   } catch (error) {
     return handleError('fasilitas/list', error, [])
+  }
+}
+
+// Fetches ALL public fasilitas (walks pagination) so the map is not capped at
+// the server default page size. Returns { items, pagination }.
+export const getPublicFasilitasAll = async (params = {}) => {
+  try {
+    const { items, pagination } = await fetchAllPages('/public/fasilitas/list', 'fasilitas', params)
+    return { items: normalizeList(items), pagination }
+  } catch (error) {
+    return handleError('fasilitas/list/all', error, { items: [], pagination: null })
+  }
+}
+
+// Public fasilitas categories. Returns [{ id, name, usage_count }].
+export const getPublicFasilitasCategories = async () => {
+  try {
+    const response = await apiClient.get('/public/fasilitas/categories', { params: { limit: 100 } })
+    const data = unwrapData(response)
+    const list = Array.isArray(data?.categories) ? data.categories : unwrapList(response, 'categories')
+    return Array.isArray(list) ? list : []
+  } catch (error) {
+    return handleError('fasilitas/categories', error, [])
   }
 }
 
@@ -177,6 +242,17 @@ export const getPublicStrukturList = async (params = {}) => {
   }
 }
 
+// Fetches ALL struktur entries (officials) by walking pagination, so the
+// Perangkat list is not capped at the server default page size.
+export const getPublicStrukturAll = async (params = {}) => {
+  try {
+    const { items } = await fetchAllPages('/public/struktur/list', 'struktur', params)
+    return normalizeList(items)
+  } catch (error) {
+    return handleError('struktur/list', error, [])
+  }
+}
+
 // ============ UMKM ============
 
 export const getPublicUMKMList = async (params = {}) => {
@@ -196,6 +272,29 @@ export const getPublicProfileList = async (params = {}) => {
     return normalizeList(unwrapList(response, 'profile'))
   } catch (error) {
     return handleError('profile/list', error, [])
+  }
+}
+
+// Fetches every profile section by walking pagination, so the public Profil
+// nav is not capped at the server's default/max page size.
+export const getPublicProfileAll = async (params = {}) => {
+  try {
+    const { items } = await fetchAllPages('/public/profile/list', 'profile', params)
+    return normalizeList(items)
+  } catch (error) {
+    return handleError('profile/list', error, [])
+  }
+}
+
+// Public profile section categories. Returns [{ id, name, usage_count }].
+export const getPublicProfileCategories = async (params = {}) => {
+  try {
+    const response = await apiClient.get('/public/profile/categories', { params: { limit: 100, ...params } })
+    const data = unwrapData(response)
+    const list = Array.isArray(data?.categories) ? data.categories : unwrapList(response, 'categories')
+    return Array.isArray(list) ? list : []
+  } catch (error) {
+    return handleError('profile/categories', error, [])
   }
 }
 

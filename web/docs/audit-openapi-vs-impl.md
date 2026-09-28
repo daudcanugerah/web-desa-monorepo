@@ -6,6 +6,13 @@ Source of truth: [`../openapi.yaml`](../openapi.yaml) (5706 lines). Per OpenAPI,
 
 The frontend was written against a **different, fictional API shape**. Almost every page will break when wired to a real backend.
 
+> **Status (superseded in part):** many findings below have since been fixed. The
+> unwrap helpers now handle both shapes, so the "WRONG" verdicts in section A are
+> historical. `Profil.vue` is now fully API-driven (`/public/profile/list` +
+> `/public/profile/categories` + `/public/struktur/list`); its old
+> `history/vision/mission/structure` mapping no longer exists. Treat section A and
+> the Profil rows in section B/summary as the *then*-state, not current.
+
 ---
 
 ## A. Response Unwrapping — 8 of 13 Functions Wrong
@@ -31,7 +38,7 @@ Service code does `response.data?.X` first. The actual responses have no `data` 
 | `getPublicUMKMById` | `/public/umkm/{id}` | raw | `response.data \|\| response` | OK by accident — unused |
 | `getPublicStrukturById` | `/public/struktur/{id}` | raw | `response.data` | **WRONG** — unused |
 | `getPublicInfographicById` | `/public/infographic/{id}` | raw | `response.data` | **WRONG** — unused |
-| `getPublicProfileList` | `/public/profile/list` | `{profile:[],pagination:{}}` | `response.data?.profile` | **WRONG** — unused |
+| `getPublicProfileList` | `/public/profile/list` | `{profile:[],pagination:{}}` | `unwrapList(response,'profile')` | FIXED — used by Profil |
 | `getPublicProfileById` | `/public/profile/{id}` | raw | `response.data` | **WRONG** — unused |
 | `getBeritaCategories` | `/berita/categories` (admin) | `{categories:[],pagination:{}}` | `response.data?.categories` | **WRONG** — unused |
 | `getPPIDCategories` | `/ppid/categories` (admin) | same | `response.data?.categories` | **WRONG** — unused |
@@ -130,7 +137,7 @@ Stats (`population`, `area`, `neighborhoods`, `businesses`, `statistics`) **do n
 **Bug effects:**
 - "Location" line on Peta sidebar always empty
 - Category badge uses name substring matching (e.g. "kantor" → Pemerintahan) — only works for ID-language names. If categories are localized, the heuristic fails.
-- Markers without `latitude`/`longitude` get random points inside polygon (`Peta.vue:430`) — silent data degradation.
+- ~~Markers without `latitude`/`longitude` get random points inside polygon.~~ **Fixed**: such facilities are now skipped on the map and counted in an `unmappedCount` notice (see `features/peta.md`).
 
 ### B7. `struktur.StrukturResponse` (Profil Perangkat)
 
@@ -260,8 +267,8 @@ Both are unused. If hero should switch to API-driven, use `getActiveBanners` (al
 
 | Page | Status | What breaks |
 |---|---|---|
-| Home | **Broken** | Stats `NaN`/empty (field + unwrap). Hero uses hardcoded slides, ignores `getActiveBanners`. |
-| Profil | **Broken** | Unwrap bug → `data.officials = []`. Field names don't exist → history/vision/mission/structure all fallback. |
+| Home | **Fixed** | API-driven: extended `desa` fields, banners, pengumuman (berita category), latest news, fasilitas count. No FAKE_* left. |
+| Profil | **Fixed** | Now reads `/public/profile/list` + `/public/profile/categories` + `/public/struktur/list`; grouping/order server-driven via `sort_order`. |
 | Infografik | **Broken** | Renders MOCK_DATA; API result discarded. MOCK_DATA shape incompatible with real endpoint. |
 | Peta | **Partial** | Unwrap OK. `location`, `type` always empty (heuristic used). `images[]` ignored. Polygon coords hardcoded, GeoJSON unused. |
 | Berita list | **Broken** | Category shows `[object Object]`. Slug missing → `/berita/undefined`. No excerpt, no image. Search hits `excerpt`/`content` always undefined. |

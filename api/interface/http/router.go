@@ -55,7 +55,9 @@ type RouterConfig struct {
 	StrukturHandler            *struktur.StrukturHandler
 	StrukturUploadHandler      *struktur.StrukturUploadHandler
 	DesaHandler                *desa.DesaHandler
+	DesaUploadHandler          *desa.DesaUploadHandler
 	ProfileHandler             *profile.ProfileHandler
+	ProfileCategoryHandler     *profile.ProfileCategoryHandler
 	InfographicHandler         *infographic.InfographicHandler
 	InfographicCategoryHandler *infographic.InfographicCategoryHandler
 	HealthHandler              *health.HealthHandler
@@ -134,9 +136,9 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 		gallery.RegisterRoutes(r, cfg.GalleryHandler, mw, middleware.ScopePublic)
 		ppid.RegisterRoutes(r, cfg.PPIDHandler, cfg.PPIDCategoryHandler, cfg.PPIDUploadHandler, mw, middleware.ScopePublic)
 		struktur.RegisterRoutes(r, cfg.StrukturHandler, cfg.StrukturUploadHandler, mw, middleware.ScopePublic)
-		profile.RegisterRoutes(r, cfg.ProfileHandler, mw, middleware.ScopePublic)
+		profile.RegisterRoutes(r, cfg.ProfileHandler, cfg.ProfileCategoryHandler, mw, middleware.ScopePublic)
 		infographic.RegisterRoutes(r, cfg.InfographicHandler, cfg.InfographicCategoryHandler, mw, middleware.ScopePublic)
-		desa.RegisterRoutes(r, cfg.DesaHandler, mw, middleware.ScopePublic)
+		desa.RegisterRoutes(r, cfg.DesaHandler, cfg.DesaUploadHandler, mw, middleware.ScopePublic)
 
 		// Task 7.1: unified signed-URL media endpoint. The JWT in the
 		// query string is the auth; both public and admin traffic
@@ -169,8 +171,8 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 			gallery.RegisterRoutes(r, cfg.GalleryHandler, mw, middleware.ScopeProtected)
 			ppid.RegisterRoutes(r, cfg.PPIDHandler, cfg.PPIDCategoryHandler, cfg.PPIDUploadHandler, mw, middleware.ScopeProtected)
 			struktur.RegisterRoutes(r, cfg.StrukturHandler, cfg.StrukturUploadHandler, mw, middleware.ScopeProtected)
-			desa.RegisterRoutes(r, cfg.DesaHandler, mw, middleware.ScopeProtected)
-			profile.RegisterRoutes(r, cfg.ProfileHandler, mw, middleware.ScopeProtected)
+			desa.RegisterRoutes(r, cfg.DesaHandler, cfg.DesaUploadHandler, mw, middleware.ScopeProtected)
+			profile.RegisterRoutes(r, cfg.ProfileHandler, cfg.ProfileCategoryHandler, mw, middleware.ScopeProtected)
 			infographic.RegisterRoutes(r, cfg.InfographicHandler, cfg.InfographicCategoryHandler, mw, middleware.ScopeProtected)
 		})
 	})

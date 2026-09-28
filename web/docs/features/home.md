@@ -1,41 +1,41 @@
-# Home
+# Home (Beranda)
 
-`pages/Home.vue` → route `/`. Landing page.
+`pages/Home.vue` → route `/`. Landing page. Fully API-driven — no FAKE_* data.
 
 ## Sections (top → bottom)
 
-1. **Hero Banner Slider** — 3 hardcoded slides, 5s auto-rotate (`setInterval`), manual prev/next + dot nav. Gradient bg + picsum image overlay. Fades in via `opacity-100`/`opacity-0` per slide.
-2. **Stats** — 4 stat cards (Penduduk, Luas Wilayah, Dusun, UMKM). Pulls from `getPublicDesa()`; falls back to hardcoded `{ population: 5420, area: '12.5 km²', neighborhoods: 8, businesses: 45 }` on miss/error. Colors bind via `bg-${stat.color}-100` (Tailwind purge risk).
-3. **Village Head Welcome** — static. "Budi Santoso, S.Sos / Kepala Desa Sukamaju". Avatar placeholder (`BS` initials).
-4. **Latest News** — 3 most recent from `getPublicBeritaList().slice(0, 3)`. Card → `RouterLink` to `/berita/:slug`.
-5. **Explore Sections** — 3 static cards (Profil / Infografik / UMKM) with custom SVG icons.
-6. **Contact CTA** — `tel:02112345678` link + "Layanan Publik" → PPID.
+1. **Pengumuman ticker** — latest articles in the berita **"Pengumuman"**
+   category (`getPublicBeritaCategoryIdByName('Pengumuman')` → `getPublicBeritaList({ category })`).
+   Each links to `/berita/:id`. Empty state when none.
+2. **Hero Banner Slider** — active banners (`getActiveBanners()`), 5s auto-rotate,
+   manual prev/next + dots. Falls back to a single title slide when no banners.
+3. **Motto Ribbon** — `desa.motto`; hidden when empty.
+4. **Sambutan Kepala Desa** — `desa.kepala_desa`, `desa.kepala_desa_message`,
+   and `desa.kepala_desa_media` (photo, signed URL; falls back to an icon when
+   absent). Whole section hidden when name and message are both empty.
+5. **Statistik** — 6 cards from `desa.jumlah_*`; hidden when all empty.
+6. **Berita & Informasi** — latest 4 from `getPublicBeritaList()`.
+7. **APBDesa** — link-only card to `/infografik` (no hardcoded figures).
+8. **Mini Peta** — schematic SVG + `desa.jumlah_dusun`, `wilayah`, live
+   fasilitas count (`getPublicFasilitasAll`); links to `/peta`.
+9. **Jelajahi** — static nav cards.
+10. **Contact CTA** — real `desa.phone` / `desa.email`; PPID link.
 
-## State
+## Data sources
 
-| Ref | Type | Notes |
-|---|---|---|
-| `data` | `ref(null)` | `{ latestNews, stats }` |
-| `loading` | `ref(true)` | toggled in `onMounted` `finally` |
-| `currentSlide` | `ref(0)` | hero index |
-| `slideTimer` | `let` (not ref) | `setInterval` handle, cleared `onUnmounted` |
-
-## Computed
-
-- `statItems` — maps raw stats → `{ value, label, sublabel, color, icon }`. `population` formatted via `toLocaleString('id-ID')`.
-
-## Effects
-
-- `nextSlide` / `previousSlide` — mod-arithmetic index update.
-- `startSlideTimer` — starts `setInterval(nextSlide, 5000)` after data load.
-
-## API
-
-- `getPublicBeritaList()` → list, slice(0, 3)
-- `getPublicDesa()` → object; `population` / `area` / `neighborhoods` / `businesses` / `statistics` keys consumed
+| Field | Source |
+|---|---|
+| name, phone, email, address | `getPublicDesa()` (via `useDesaInfo`) |
+| kepala_desa, kepala_desa_message, kepala_desa_media, motto | `getPublicDesa()` |
+| kecamatan, kabupaten, provinsi | `getPublicDesa()` |
+| jumlah_penduduk, jumlah_kk, jumlah_dusun, jumlah_rt, jumlah_rw, jumlah_umkm | `getPublicDesa()` |
+| banners | `getActiveBanners()` |
+| pengumuman | `getPublicBeritaList({ category })` |
+| latest news | `getPublicBeritaList()` |
+| fasilitas count | `getPublicFasilitasAll()` |
 
 ## Notes
 
-- Active banners API (`getActiveBanners`) imported but **not called** — hero slides are still hardcoded.
-- `getActiveBanners` import is dead — safe to remove.
-- `<LoadingSpinner>` rendered while loading. Section-level, not page-level.
+- Every section degrades to hidden/empty state rather than showing placeholder
+  data. There are no `FAKE_*` constants anymore.
+- `desa` extended fields are edited in admin **Info Umum** (`/profile`).

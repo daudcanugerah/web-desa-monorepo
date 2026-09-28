@@ -9,8 +9,8 @@
 
     <div class="max-w-4xl mx-auto space-y-6">
         <!-- Section: Info Dasar -->
-        <section class="bg-white dark:bg-secondary-800 rounded-lg shadow-sm border border-secondary-200 dark:border-secondary-700 overflow-hidden">
-          <header class="flex items-center gap-2 px-6 py-4 border-b border-secondary-200 dark:border-secondary-700 bg-secondary-50 dark:bg-secondary-800/60">
+        <section class="bg-white dark:bg-secondary-800 rounded-lg shadow-sm border border-secondary-200 dark:border-secondary-700">
+          <header class="flex items-center gap-2 px-6 py-4 border-b border-secondary-200 dark:border-secondary-700 bg-secondary-50 dark:bg-secondary-800/60 rounded-t-lg">
             <svg class="w-5 h-5 text-secondary-500 dark:text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
@@ -396,6 +396,20 @@ async function handleSubmit() {
   saving.value = true
   try {
     const categoryId = form.value.category?.id || ''
+
+    // Upload new image files first (single-shot endpoint), collecting the
+    // returned media ids. Existing images are referenced by their media_id.
+    const uploadedIds = []
+    for (const file of newImages.value) {
+      const res = await facilityService.uploadMedia(file)
+      const mediaId = res.data?.media_id
+      if (mediaId) uploadedIds.push(mediaId)
+    }
+
+    const existingIds = existingImages.value
+      .map((img) => (typeof img === 'string' ? null : img.media_id || img.id))
+      .filter(Boolean)
+
     const fd = new FormData()
     fd.append('name', form.value.name)
     if (categoryId) fd.append('category', categoryId)
@@ -403,10 +417,9 @@ async function handleSubmit() {
     fd.append('latitude', parseFloat(form.value.latitude))
     fd.append('longitude', parseFloat(form.value.longitude))
 
-    // Add new images
-    newImages.value.forEach(img => {
-      fd.append('images', img)
-    })
+    // The backend replaces the image set on update, so send every retained
+    // image (existing + newly uploaded) as images_media_ids.
+    ;[...existingIds, ...uploadedIds].forEach((id) => fd.append('images_media_ids', id))
 
     if (isEdit.value) {
       await facilityService.update(route.params.id, fd)

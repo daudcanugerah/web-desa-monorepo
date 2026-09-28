@@ -80,7 +80,7 @@ func (r *BannerRepository) FindByID(ctx context.Context, id string) (*banner.Ban
 	var b banner.Banner
 	var metadataJSON []byte
 
-query := `
+	query := `
 		SELECT banners.id AS id, banners.title AS title, banners.description AS description, banners.link AS link, banners.image_media_id AS image_media_id, banners.status AS status, banners.category AS category, banner_categories.name AS category_name, banners.metadata AS metadata, banners.created_at AS created_at, banners.updated_at AS updated_at
 		FROM banners
 		LEFT JOIN banner_categories ON banners.category = banner_categories.id
@@ -318,5 +318,17 @@ func (r *BannerRepository) CountActiveBanners(ctx context.Context) (int, error) 
 		return 0, errtrace.Wrap(fmt.Errorf("failed to count active banners: %w", err))
 	}
 
+	return count, nil
+}
+
+// CountByImageMediaID returns how many banners still reference the given
+// image media id. Banners.image_media_id is ON DELETE SET NULL, so a shared
+// media row must survive a single banner's deletion.
+func (r *BannerRepository) CountByImageMediaID(ctx context.Context, mediaID string) (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM banners WHERE image_media_id = $1`
+	if err := r.db.GetContext(ctx, &count, query, mediaID); err != nil {
+		return 0, errtrace.Wrap(fmt.Errorf("failed to count banners by image media: %w", err))
+	}
 	return count, nil
 }

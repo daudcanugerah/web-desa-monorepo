@@ -30,7 +30,7 @@ src/
     apiClient.js          # HTTP client singleton
     desaService.js        # all data access
 public/
-  area-desa-poly.json     # GeoJSON (unused, coords inlined in Peta.vue)
+  area-desa-poly.json     # village polygon ([lng,lat] pairs) loaded by Peta.vue
 openapi.yaml              # backend contract (2152 lines)
 ```
 
@@ -107,16 +107,15 @@ const formatDate = (s) => new Date(s).toLocaleDateString('id-ID', {
 
 - `bg-${color}-100` template strings (`Home.vue`, `Infografik.vue`) get purged by Tailwind. Either safelist in `tailwind.config.js` or hardcode color maps.
 - `recharts` dep unused.
-- `desaService.js` mixes live API + dead mock fns (lines 1–704). Mock fns are unused.
-- `Peta.vue` hardcodes polygon coords at line 235. `public/area-desa-poly.json` ships but unused. Mismatch risk.
-- `Infografik.vue` fetches `/public/infographic/list` but discards result, renders inline `MOCK_DATA`.
-- `dist/` committed. `guideline.md` unrelated, committed by mistake.
-- `opencode.json` denies bash for the agent sandbox.
-- No `.env` committed. Set `VITE_API_BASE_URL` via `.env.local` to override default.
+- `Infografik.vue` uses real Metabase embeds with JWT tokens (no mock data).
+- `public/area-desa-poly.json` is loaded at runtime by `Peta.vue` (polygon is no longer inlined).
+- `.env` is committed. `VITE_API_BASE_URL` may omit `/api/v1` — `apiClient.normalizeBaseUrl()` appends it.
 
 ## Env
 
 ```ini
-# .env.local
-VITE_API_BASE_URL=http://localhost:8080/api/v1
+# .env / .env.local
+VITE_API_BASE_URL=http://localhost:8081/api/v1
+VITE_METABASE_URL=http://bi-embed.desapalasari.my.id
+VITE_FEATURE_GALLERY_PUBLIC=false
 ```

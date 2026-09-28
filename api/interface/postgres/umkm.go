@@ -97,7 +97,6 @@ func (r *UMKMRepository) Create(ctx context.Context, u *umkm.UMKM) error {
 // Validates: Requirements 10.6
 func (r *UMKMRepository) FindByID(ctx context.Context, id string) (*umkm.UMKM, error) {
 	var u umkm.UMKM
-	var imagesJSON []byte
 	var imagesMediaIDsJSON []byte
 
 	query := `
@@ -118,7 +117,6 @@ func (r *UMKMRepository) FindByID(ctx context.Context, id string) (*umkm.UMKM, e
 		&u.Category,
 		&u.CategoryName,
 		&u.Description,
-		&imagesJSON,
 		&imagesMediaIDsJSON,
 		&u.CreatedAt,
 		&u.UpdatedAt,
@@ -203,7 +201,6 @@ func (r *UMKMRepository) List(ctx context.Context, query *string, category *stri
 	var umkms []*umkm.UMKM
 	for rows.Next() {
 		var u umkm.UMKM
-		var imagesJSON []byte
 		var imagesMediaIDsJSON []byte
 
 		err := rows.Scan(
@@ -217,7 +214,6 @@ func (r *UMKMRepository) List(ctx context.Context, query *string, category *stri
 			&u.Category,
 			&u.CategoryName,
 			&u.Description,
-			&imagesJSON,
 			&imagesMediaIDsJSON,
 			&u.CreatedAt,
 			&u.UpdatedAt,

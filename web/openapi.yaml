@@ -197,15 +197,52 @@ definitions:
                 type: string
             email:
                 type: string
+            jumlah_dusun:
+                type: integer
+            jumlah_kk:
+                type: integer
+            jumlah_penduduk:
+                type: integer
+            jumlah_rt:
+                type: integer
+            jumlah_rw:
+                type: integer
+            jumlah_umkm:
+                type: integer
+            kabupaten:
+                type: string
+            kecamatan:
+                type: string
+            kepala_desa:
+                type: string
+            kepala_desa_media:
+                $ref: '#/definitions/response.MediaInfo'
+            kepala_desa_media_id:
+                type: string
+            kepala_desa_message:
+                type: string
+            motto:
+                type: string
             name:
                 type: string
             phone:
+                type: string
+            provinsi:
                 type: string
             updated_at:
                 type: string
             vision_mission:
                 type: string
             website:
+                type: string
+        type: object
+    desa.DesaUploadMediaResponse:
+        properties:
+            filename:
+                type: string
+            media_id:
+                type: string
+            url:
                 type: string
         type: object
     fasilitas.FasilitasCategoryListResponse:
@@ -436,6 +473,26 @@ definitions:
                 type: boolean
         required:
             - is_public
+        type: object
+    gallery.PublicFolderDetailResponse:
+        properties:
+            folder:
+                $ref: '#/definitions/gallery.FolderResponse'
+            media:
+                items:
+                    $ref: '#/definitions/gallery.MediaResponse'
+                type: array
+            pagination:
+                $ref: '#/definitions/pagination.Result'
+        type: object
+    gallery.PublicFolderListResponse:
+        properties:
+            folders:
+                items:
+                    $ref: '#/definitions/gallery.FolderResponse'
+                type: array
+            pagination:
+                $ref: '#/definitions/pagination.Result'
         type: object
     gallery.RefreshMediaResponse:
         properties:
@@ -700,6 +757,31 @@ definitions:
             thumbnail:
                 $ref: '#/definitions/ppid.PPIDUploadMediaResponse'
         type: object
+    profile.ProfileCategoryPaginatedResponse:
+        properties:
+            categories:
+                items:
+                    $ref: '#/definitions/profile.ProfileCategoryResponse'
+                type: array
+            pagination:
+                additionalProperties: true
+                type: object
+        type: object
+    profile.ProfileCategoryResponse:
+        properties:
+            created_at:
+                type: string
+            id:
+                type: string
+            name:
+                type: string
+            sort_order:
+                type: integer
+            updated_at:
+                type: string
+            usage_count:
+                type: integer
+        type: object
     profile.ProfilePaginatedResponse:
         properties:
             pagination:
@@ -712,6 +794,10 @@ definitions:
         type: object
     profile.ProfileResponse:
         properties:
+            category:
+                $ref: '#/definitions/response.CategoryInfo'
+            category_id:
+                type: string
             content:
                 type: string
             created_at:
@@ -1177,7 +1263,7 @@ paths:
         post:
             consumes:
                 - multipart/form-data
-            description: 'Create a banner. Multipart form: title (required), description, link, image or image_media_id (required, mutually exclusive), category (UUID, optional), metadata (JSON string). Defaults status to inactive. RBAC: banners:write.'
+            description: 'Create a banner. Multipart form: title (required), description, link, image or image_media_id (required, mutually exclusive), category (UUID, optional), metadata (JSON string), status (active|inactive, optional; defaults to inactive). RBAC: banners:write.'
             parameters:
                 - description: Title
                   in: formData
@@ -1208,6 +1294,13 @@ paths:
                 - description: Metadata as JSON string
                   in: formData
                   name: metadata
+                  type: string
+                - description: 'Status: active or inactive (default inactive)'
+                  enum:
+                    - active
+                    - inactive
+                  in: formData
+                  name: status
                   type: string
             produces:
                 - application/json
@@ -2123,7 +2216,7 @@ paths:
                 - application/json
             description: 'Stored in settings table. Restart may be required for PPID email config. RBAC: desa:write.'
             parameters:
-                - description: '{name (required), description, address, phone, email, website, vision_mission}'
+                - description: '{name (required), description, address, phone, email, website, vision_mission, kepala_desa, kepala_desa_message, kepala_desa_media_id, motto, kecamatan, kabupaten, provinsi, jumlah_*}'
                   in: body
                   name: request
                   required: true
@@ -2166,6 +2259,49 @@ paths:
             summary: Update village profile (admin)
             tags:
                 - desa
+    /desa/upload-media:
+        post:
+            consumes:
+                - multipart/form-data
+            description: 'Multipart: file (image only). Validates against the desa feature allowlist (max size, MIME type). Returns admin content URL plus the media_id the front-end persists on the desa profile. RBAC: desa:write.'
+            parameters:
+                - description: Media file
+                  in: formData
+                  name: file
+                  required: true
+                  type: file
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/desa.DesaUploadMediaResponse'
+                "400":
+                    description: Bad Request
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "401":
+                    description: Unauthorized
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "403":
+                    description: Forbidden
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "404":
+                    description: Not Found
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "429":
+                    description: Too Many Requests
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+            security:
+                - BearerAuth: []
+            summary: Upload kepala desa photo (admin)
+            tags:
+                - desa-upload
     /fasilitas:
         get:
             description: 'Optional bounding box filter (minLat,maxLat,minLon,maxLon), q (name search), or category (UUID). RBAC: fasilitas:read.'
@@ -4730,6 +4866,62 @@ paths:
             summary: Update profile section (admin)
             tags:
                 - profile
+    /profile/categories:
+        post:
+            consumes:
+                - application/json
+            description: 'RBAC: profile:write.'
+            produces:
+                - application/json
+            responses:
+                "201":
+                    description: Created
+                    schema:
+                        $ref: '#/definitions/profile.ProfileCategoryResponse'
+                "400":
+                    description: Bad Request
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "409":
+                    description: Conflict
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+            security:
+                - BearerAuth: []
+            summary: Create profile category (admin)
+            tags:
+                - profile-categories
+    /profile/categories/{id}:
+        delete:
+            description: 'Returns 409 if category is in use. RBAC: profile:write.'
+            parameters:
+                - description: Category UUID
+                  in: path
+                  name: id
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                "204":
+                    description: No Content
+                "400":
+                    description: Bad Request
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "404":
+                    description: Not Found
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "409":
+                    description: Conflict
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+            security:
+                - BearerAuth: []
+            summary: Delete profile category (admin)
+            tags:
+                - profile-categories
     /profile/sections/names:
         get:
             description: 'RBAC: profile:read.'
@@ -5160,6 +5352,102 @@ paths:
             summary: List fasilitas (public)
             tags:
                 - fasilitas
+    /public/gallery/folders:
+        get:
+            description: Returns only folders flagged public. No auth.
+            parameters:
+                - description: Search name/description
+                  in: query
+                  name: q
+                  type: string
+                - description: Page
+                  in: query
+                  name: page
+                  type: integer
+                - description: Page size
+                  in: query
+                  name: limit
+                  type: integer
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/gallery.PublicFolderListResponse'
+                "400":
+                    description: Bad Request
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "429":
+                    description: Too Many Requests
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+            summary: List public gallery folders
+            tags:
+                - gallery
+    /public/gallery/folders/{id}:
+        get:
+            description: Returns the public folder and its public media only. No auth.
+            parameters:
+                - description: Folder UUID
+                  in: path
+                  name: id
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/gallery.PublicFolderDetailResponse'
+                "400":
+                    description: Bad Request
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "404":
+                    description: Not Found
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "429":
+                    description: Too Many Requests
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+            summary: Get public gallery folder detail
+            tags:
+                - gallery
+    /public/gallery/media/{id}:
+        get:
+            description: Metadata for a media item visible on the public site (its folder and itself must be public). No auth.
+            parameters:
+                - description: Media UUID
+                  in: path
+                  name: id
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/gallery.MediaResponse'
+                "400":
+                    description: Bad Request
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "404":
+                    description: Not Found
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "429":
+                    description: Too Many Requests
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+            summary: Get public media by ID
+            tags:
+                - gallery
     /public/infographic/{id}:
         get:
             description: Public read with Metabase JWT.
@@ -5537,6 +5825,40 @@ paths:
             summary: Get profile section (public)
             tags:
                 - profile
+    /public/profile/categories:
+        get:
+            description: With q search for autocomplete.
+            parameters:
+                - description: Search
+                  in: query
+                  name: q
+                  type: string
+                - description: Page
+                  in: query
+                  name: page
+                  type: integer
+                - description: Page size
+                  in: query
+                  name: limit
+                  type: integer
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/profile.ProfileCategoryPaginatedResponse'
+                "400":
+                    description: Bad Request
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+                "429":
+                    description: Too Many Requests
+                    schema:
+                        $ref: '#/definitions/response.ErrorResponse'
+            summary: List profile categories (public)
+            tags:
+                - profile-categories
     /public/profile/list:
         get:
             description: Public read.
@@ -7242,6 +7564,8 @@ tags:
       name: banner-categories
     - description: banner-upload
       name: banner-upload
+    - description: desa-upload
+      name: desa-upload
     - description: fasilitas-upload
       name: fasilitas-upload
     - description: gallery
@@ -7250,6 +7574,8 @@ tags:
       name: media
     - description: ppid-upload
       name: ppid-upload
+    - description: profile-categories
+      name: profile-categories
     - description: struktur-upload
       name: struktur-upload
     - description: umkm-upload

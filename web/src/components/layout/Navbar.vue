@@ -3,9 +3,11 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-20">
         <RouterLink to="/" class="flex items-center space-x-3 min-w-0" @click="closeMenu">
-          <div class="w-12 h-12 bg-emerald-600 rounded flex items-center justify-center flex-shrink-0">
-            <span class="text-white font-bold text-lg">{{ brandInitials }}</span>
-          </div>
+          <img
+            src="/logo-desa.png"
+            :alt="`Logo ${brandName}`"
+            class="w-12 h-12 object-contain flex-shrink-0"
+          />
           <div class="flex flex-col min-w-0">
             <span class="font-bold text-lg text-gray-900 leading-tight truncate">{{ brandName }}</span>
             <span class="text-xs text-gray-500 truncate">{{ brandTagline }}</span>
@@ -85,11 +87,10 @@ export default {
   setup() {
     const isMenuOpen = ref(false)
     const route = useRoute()
-    const { desaInfo, initials } = useDesaInfo()
+    const { desaInfo } = useDesaInfo()
     const flags = useFeatureFlags()
 
     const brandName = computed(() => desaInfo.value?.name || 'Desa')
-    const brandInitials = computed(() => initials(desaInfo.value?.name))
     const brandTagline = computed(() => {
       const name = desaInfo.value?.name
       if (!name) return 'Website Resmi'
@@ -124,7 +125,6 @@ export default {
       isMenuOpen,
       navLinks,
       brandName,
-      brandInitials,
       brandTagline,
       isActive,
       toggleMenu,

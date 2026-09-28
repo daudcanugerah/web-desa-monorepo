@@ -209,16 +209,16 @@ func formatTime(t time.Time) string {
 }
 
 const (
-	errFolderNotFound      = "folder not found"
-	errMediaNotFound       = "media not found"
-	errDuplicateFolderName = "duplicate folder name"
-	errInvalidMimeType     = "invalid mime type"
-	errFileTooLarge        = "file too large"
-	errTooManyFiles        = "too many files"
-	errTotalSizeExceeded   = "total size exceeded"
-	errInvalidFolderID     = "invalid folder id"
-	errInvalidMediaID      = "invalid media id"
-	errFolderNameInvalid   = "folder name invalid"
+	errFolderNotFound        = "folder not found"
+	errMediaNotFound         = "media not found"
+	errDuplicateFolderName   = "duplicate folder name"
+	errInvalidMimeType       = "invalid mime type"
+	errFileTooLarge          = "file too large"
+	errTooManyFiles          = "too many files"
+	errTotalSizeExceeded     = "total size exceeded"
+	errInvalidFolderID       = "invalid folder id"
+	errInvalidMediaID        = "invalid media id"
+	errFolderNameInvalid     = "folder name invalid"
 	errSystemFolderImmutable = "system folder is immutable"
 )
 
@@ -344,11 +344,10 @@ func (h *GalleryHandler) GetFolderAdmin(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	page, lim, _ := pagination.Paginate(1, 100)
 	media, pg, err := h.galleryService.ListMediaByFolder(r.Context(), id, false, usecaseGallery.ListMediaInput{
 		FolderID: id,
-		Page:     page,
-		Limit:    lim,
+		Page:     1,
+		Limit:    pagination.MaxLimit,
 	})
 	if err != nil {
 		response.ErrorWithDetails(w, http.StatusInternalServerError, "Failed to list folder media", err)
@@ -361,6 +360,95 @@ func (h *GalleryHandler) GetFolderAdmin(w http.ResponseWriter, r *http.Request) 
 		Pagination: pg,
 	}
 	response.Success(w, http.StatusOK, resp)
+}
+
+// ListFoldersPublic godoc
+// @Summary      List public gallery folders
+// @Description  Returns only folders flagged public. No auth.
+// @Tags         gallery
+// @Produce      json
+// @Param        q      query  string  false  "Search name/description"
+// @Param        page   query  int     false  "Page"
+// @Param        limit  query  int     false  "Page size"
+// @Success      200  {object}  gallery.PublicFolderListResponse
+// @Failure      400  {object}  response.ErrorResponse
+// @Failure      429  {object}  response.ErrorResponse
+// @Router       /public/gallery/folders [get]
+func (h *GalleryHandler) ListFoldersPublic(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Page  int     `in:"query=page;default=1"`
+		Limit int     `in:"query=limit;default=12"`
+		Q     *string `in:"query=q"`
+	}
+	if err := httpin.DecodeTo(r, &input); err != nil {
+		response.Error(w, http.StatusBadRequest, "Invalid query parameters")
+		return
+	}
+
+	if _, _, err := pagination.Paginate(input.Page, input.Limit); err != nil {
+		response.Error(w, http.StatusBadRequest, "Invalid pagination parameters")
+		return
+	}
+
+	folders, pg, err := h.galleryService.ListFoldersWithPublicMedia(r.Context(), usecaseGallery.ListFoldersInput{
+		Query: stringPtr(input.Q),
+		Page:  input.Page,
+		Limit: input.Limit,
+	})
+	if err != nil {
+		response.ErrorWithDetails(w, http.StatusInternalServerError, "Failed to list public folders", err)
+		return
+	}
+
+	response.Success(w, http.StatusOK, map[string]interface{}{
+		"folders":    h.toPublicFolderResponses(folders),
+		"pagination": pg,
+	})
+}
+
+// GetFolderPublic godoc
+// @Summary      Get public gallery folder detail
+// @Description  Returns the public folder and its public media only. No auth.
+// @Tags         gallery
+// @Produce      json
+// @Param        id   path  string  true  "Folder UUID"
+// @Success      200  {object}  gallery.PublicFolderDetailResponse
+// @Failure      400  {object}  response.ErrorResponse
+// @Failure      404  {object}  response.ErrorResponse
+// @Failure      429  {object}  response.ErrorResponse
+// @Router       /public/gallery/folders/{id} [get]
+func (h *GalleryHandler) GetFolderPublic(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		response.Error(w, http.StatusBadRequest, "Folder ID is required")
+		return
+	}
+
+	folder, err := h.galleryService.GetPublicFolderByID(r.Context(), id)
+	if err != nil {
+		if status, _ := mapServiceError(err, http.StatusNotFound); status == http.StatusNotFound {
+			response.Error(w, status, "Folder not found")
+			return
+		}
+		response.ErrorWithDetails(w, http.StatusInternalServerError, "Failed to get folder", err)
+		return
+	}
+
+	media, pg, err := h.galleryService.ListMediaByFolder(r.Context(), id, true, usecaseGallery.ListMediaInput{
+		FolderID: id,
+		Page:     1,
+		Limit:    pagination.MaxLimit,
+	})
+	if err != nil {
+		response.ErrorWithDetails(w, http.StatusInternalServerError, "Failed to list folder media", err)
+		return
+	}
+
+	response.Success(w, http.StatusOK, FolderDetailResponse{
+		Folder:     h.toPublicFolderResponse(folder),
+		Media:      h.toPublicMediaResponses(media),
+		Pagination: pg,
+	})
 }
 
 // CreateFolder godoc
@@ -677,6 +765,35 @@ func (h *GalleryHandler) GetMediaAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.Success(w, http.StatusOK, h.toAdminMediaResponse(m))
+}
+
+// GetMediaPublic godoc
+// @Summary      Get public media by ID
+// @Description  Metadata for a media item visible on the public site (its folder and itself must be public). No auth.
+// @Tags         gallery
+// @Produce      json
+// @Param        id   path  string  true  "Media UUID"
+// @Success      200  {object}  gallery.MediaResponse
+// @Failure      400  {object}  response.ErrorResponse
+// @Failure      404  {object}  response.ErrorResponse
+// @Failure      429  {object}  response.ErrorResponse
+// @Router       /public/gallery/media/{id} [get]
+func (h *GalleryHandler) GetMediaPublic(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		response.Error(w, http.StatusBadRequest, "Media ID is required")
+		return
+	}
+	m, err := h.galleryService.GetPublicMediaByID(r.Context(), id)
+	if err != nil {
+		if status, _ := mapServiceError(err, http.StatusNotFound); status == http.StatusNotFound {
+			response.Error(w, status, "Media not found")
+			return
+		}
+		response.ErrorWithDetails(w, http.StatusInternalServerError, "Failed to get media", err)
+		return
+	}
+	response.Success(w, http.StatusOK, h.toPublicMediaResponse(m))
 }
 
 // UploadMedia godoc
@@ -1125,7 +1242,7 @@ func (h *GalleryHandler) toAdminFolderResponses(in []gallery.Folder) []FolderRes
 	return out
 }
 
-func toPublicFolderResponse(f *gallery.Folder) FolderResponse {
+func (h *GalleryHandler) toPublicFolderResponse(f *gallery.Folder) FolderResponse {
 	if f == nil {
 		return FolderResponse{}
 	}
@@ -1136,18 +1253,34 @@ func toPublicFolderResponse(f *gallery.Folder) FolderResponse {
 		Description:       f.Description,
 		IsPublic:          true,
 		CoverMediaID:      cover,
-		CoverThumbnailURL: publicThumbnailURL(cover),
+		CoverThumbnailURL: h.publicThumbnailURLFor(cover),
+		MediaCount:        f.MediaCount,
+		PublicMediaCount:  f.MediaCount,
 		CreatedAt:         formatTime(f.CreatedAt),
 		UpdatedAt:         formatTime(f.UpdatedAt),
 	}
 }
 
-func toPublicFolderResponses(in []gallery.Folder) []FolderResponse {
+func (h *GalleryHandler) toPublicFolderResponses(in []gallery.Folder) []FolderResponse {
 	out := make([]FolderResponse, 0, len(in))
 	for i := range in {
-		out = append(out, toPublicFolderResponse(&in[i]))
+		out = append(out, h.toPublicFolderResponse(&in[i]))
 	}
 	return out
+}
+
+// publicThumbnailURLFor returns the streamable signed thumbnail path for the
+// unified /api/v1/media/{id}/thumbnail?jwt= route. Falls back to the legacy
+// feature path only when signed URLs are disabled.
+func (h *GalleryHandler) publicThumbnailURLFor(mediaID string) string {
+	if mediaID == "" {
+		return ""
+	}
+	if h.signedURLsEnabled && h.signedURL != nil {
+		return usecaseGallery.SignedURLPath("thumbnail", mediaID) +
+			h.signedURL.SignedURLQuery(usecaseGallery.ScopePublic, mediaID, "anonymous", 0)
+	}
+	return publicThumbnailURL(mediaID)
 }
 
 func (h *GalleryHandler) thumbnailResponse(m *gallery.Media, scope string) *string {
@@ -1159,6 +1292,7 @@ func (h *GalleryHandler) thumbnailResponse(m *gallery.Media, scope string) *stri
 			return ptrStr(usecaseGallery.SignedURLPath("thumbnail", m.ID) +
 				h.signedURL.SignedURLQuery(usecaseGallery.ScopePublic, m.ID, "anonymous", 0))
 		}
+		return ptrStr(publicThumbnailURL(m.ID))
 	}
 	return ptrStr(h.signedThumbnailURL(m.ID, gallerySub))
 }
@@ -1172,6 +1306,7 @@ func (h *GalleryHandler) contentResponse(m *gallery.Media, scope string) *string
 			return ptrStr(usecaseGallery.SignedURLPath("content", m.ID) +
 				h.signedURL.SignedURLQuery(usecaseGallery.ScopePublic, m.ID, "anonymous", 0))
 		}
+		return ptrStr(publicContentURL(m.ID))
 	}
 	return ptrStr(h.signedContentURL(m.ID, gallerySub))
 }

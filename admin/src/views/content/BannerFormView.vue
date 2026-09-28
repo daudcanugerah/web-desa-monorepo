@@ -23,7 +23,7 @@
           @manage="showCategoryModal = true"
         />
 
-        <div v-if="isEdit" class="flex items-center gap-3">
+        <div class="flex items-center gap-3">
           <span class="text-sm font-medium text-secondary-700 dark:text-secondary-300">Status</span>
           <AppToggle
             :model-value="form.status === 'active'"
@@ -369,8 +369,16 @@ function validate() {
 }
 
 async function toggleStatus() {
-  updatingStatus.value = true
   const newStatus = form.value.status === 'active' ? 'inactive' : 'active'
+
+  // On create there is no id yet — hold the choice locally and send it with
+  // the create request. On edit, persist immediately via PATCH /status.
+  if (!isEdit.value) {
+    form.value.status = newStatus
+    return
+  }
+
+  updatingStatus.value = true
   try {
     await bannerService.updateStatus(route.params.id, newStatus)
     form.value.status = newStatus
@@ -395,6 +403,10 @@ async function handleSubmit() {
       fd.append('image', imageFile.value)
     } else if (selectedMediaId.value) {
       fd.append('image_media_id', selectedMediaId.value)
+    }
+    // Status is settable on create; on edit it changes via PATCH /status.
+    if (!isEdit.value) {
+      fd.append('status', form.value.status || 'inactive')
     }
     // Note: status is NOT part of PUT /banners/{id} per swagger ("Status is NOT
     // changed here — use PATCH /status"). Status changes go through the toggle.

@@ -333,7 +333,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Create a banner. Multipart form: title (required), description, link, image or image_media_id (required, mutually exclusive), category (UUID, optional), metadata (JSON string). Defaults status to inactive. RBAC: banners:write.",
+                "description": "Create a banner. Multipart form: title (required), description, link, image or image_media_id (required, mutually exclusive), category (UUID, optional), metadata (JSON string), status (active|inactive, optional; defaults to inactive). RBAC: banners:write.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -387,6 +387,16 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Metadata as JSON string",
                         "name": "metadata",
+                        "in": "formData"
+                    },
+                    {
+                        "enum": [
+                            "active",
+                            "inactive"
+                        ],
+                        "type": "string",
+                        "description": "Status: active or inactive (default inactive)",
+                        "name": "status",
                         "in": "formData"
                     }
                 ],
@@ -1804,7 +1814,7 @@ const docTemplate = `{
                 "summary": "Update village profile (admin)",
                 "parameters": [
                     {
-                        "description": "{name (required), description, address, phone, email, website, vision_mission}",
+                        "description": "{name (required), description, address, phone, email, website, vision_mission, kepala_desa, kepala_desa_message, kepala_desa_media_id, motto, kecamatan, kabupaten, provinsi, jumlah_*}",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -1847,6 +1857,73 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/desa/upload-media": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Multipart: file (image only). Validates against the desa feature allowlist (max size, MIME type). Returns admin content URL plus the media_id the front-end persists on the desa profile. RBAC: desa:write.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "desa-upload"
+                ],
+                "summary": "Upload kepala desa photo (admin)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Media file",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/desa.DesaUploadMediaResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/response.ErrorResponse"
                         }
@@ -5622,6 +5699,95 @@ const docTemplate = `{
                 }
             }
         },
+        "/profile/categories": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "RBAC: profile:write.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile-categories"
+                ],
+                "summary": "Create profile category (admin)",
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/profile.ProfileCategoryResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/profile/categories/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns 409 if category is in use. RBAC: profile:write.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile-categories"
+                ],
+                "summary": "Delete profile category (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Category UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/profile/sections/names": {
             "get": {
                 "security": [
@@ -6483,6 +6649,152 @@ const docTemplate = `{
                 }
             }
         },
+        "/public/gallery/folders": {
+            "get": {
+                "description": "Returns only folders flagged public. No auth.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gallery"
+                ],
+                "summary": "List public gallery folders",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search name/description",
+                        "name": "q",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gallery.PublicFolderListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/public/gallery/folders/{id}": {
+            "get": {
+                "description": "Returns the public folder and its public media only. No auth.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gallery"
+                ],
+                "summary": "Get public gallery folder detail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Folder UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gallery.PublicFolderDetailResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/public/gallery/media/{id}": {
+            "get": {
+                "description": "Metadata for a media item visible on the public site (its folder and itself must be public). No auth.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gallery"
+                ],
+                "summary": "Get public media by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Media UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gallery.MediaResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/public/infographic/categories": {
             "get": {
                 "description": "With q search for autocomplete.",
@@ -6977,6 +7289,58 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/public/profile/categories": {
+            "get": {
+                "description": "With q search for autocomplete.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile-categories"
+                ],
+                "summary": "List profile categories (public)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search",
+                        "name": "q",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/profile.ProfileCategoryPaginatedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/response.ErrorResponse"
                         }
@@ -9882,10 +10246,52 @@ const docTemplate = `{
                 "email": {
                     "type": "string"
                 },
+                "jumlah_dusun": {
+                    "type": "integer"
+                },
+                "jumlah_kk": {
+                    "type": "integer"
+                },
+                "jumlah_penduduk": {
+                    "type": "integer"
+                },
+                "jumlah_rt": {
+                    "type": "integer"
+                },
+                "jumlah_rw": {
+                    "type": "integer"
+                },
+                "jumlah_umkm": {
+                    "type": "integer"
+                },
+                "kabupaten": {
+                    "type": "string"
+                },
+                "kecamatan": {
+                    "type": "string"
+                },
+                "kepala_desa": {
+                    "type": "string"
+                },
+                "kepala_desa_media": {
+                    "$ref": "#/definitions/response.MediaInfo"
+                },
+                "kepala_desa_media_id": {
+                    "type": "string"
+                },
+                "kepala_desa_message": {
+                    "type": "string"
+                },
+                "motto": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
                 "phone": {
+                    "type": "string"
+                },
+                "provinsi": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -9895,6 +10301,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "website": {
+                    "type": "string"
+                }
+            }
+        },
+        "desa.DesaUploadMediaResponse": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string"
+                },
+                "media_id": {
+                    "type": "string"
+                },
+                "url": {
                     "type": "string"
                 }
             }
@@ -10240,6 +10660,37 @@ const docTemplate = `{
                 "is_public": {
                     "type": "boolean",
                     "example": true
+                }
+            }
+        },
+        "gallery.PublicFolderDetailResponse": {
+            "type": "object",
+            "properties": {
+                "folder": {
+                    "$ref": "#/definitions/gallery.FolderResponse"
+                },
+                "media": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gallery.MediaResponse"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/pagination.Result"
+                }
+            }
+        },
+        "gallery.PublicFolderListResponse": {
+            "type": "object",
+            "properties": {
+                "folders": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gallery.FolderResponse"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/pagination.Result"
                 }
             }
         },
@@ -10634,6 +11085,44 @@ const docTemplate = `{
                 }
             }
         },
+        "profile.ProfileCategoryPaginatedResponse": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/profile.ProfileCategoryResponse"
+                    }
+                },
+                "pagination": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            }
+        },
+        "profile.ProfileCategoryResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "sort_order": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "usage_count": {
+                    "type": "integer"
+                }
+            }
+        },
         "profile.ProfilePaginatedResponse": {
             "type": "object",
             "properties": {
@@ -10652,6 +11141,12 @@ const docTemplate = `{
         "profile.ProfileResponse": {
             "type": "object",
             "properties": {
+                "category": {
+                    "$ref": "#/definitions/response.CategoryInfo"
+                },
+                "category_id": {
+                    "type": "string"
+                },
                 "content": {
                     "type": "string"
                 },

@@ -1,13 +1,13 @@
 <template>
   <nav v-if="totalPages > 1" class="flex items-center justify-center" aria-label="Pagination">
-    <div class="flex items-center gap-1">
+    <div class="flex items-center gap-0.5">
       <button
         @click="go(currentPage - 1)"
         :disabled="currentPage === 1"
-        class="px-3 py-1.5 text-sm rounded-lg disabled:text-gray-300 disabled:cursor-not-allowed text-gray-700 hover:bg-gray-100 disabled:hover:bg-transparent transition-colors"
+        class="p-1.5 rounded-md disabled:text-gray-300 disabled:cursor-not-allowed text-gray-700 hover:bg-gray-100 disabled:hover:bg-transparent transition-colors"
         aria-label="Previous page"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
       </button>
@@ -15,14 +15,14 @@
       <template v-for="(item, idx) in pageItems" :key="idx">
         <span
           v-if="item === '...'"
-          class="px-2 py-1.5 text-sm text-gray-400 select-none"
+          class="px-1.5 py-1 text-xs text-gray-400 select-none"
         >…</span>
         <button
           v-else
           @click="go(item)"
           :aria-current="item === currentPage ? 'page' : undefined"
           :class="[
-            'min-w-[2rem] px-2.5 py-1.5 text-sm rounded-lg transition-colors',
+            'min-w-[1.5rem] px-1.5 py-1 text-xs rounded-md transition-colors',
             item === currentPage
               ? 'bg-emerald-600 text-white font-medium'
               : 'text-gray-700 hover:bg-gray-100'
@@ -35,10 +35,10 @@
       <button
         @click="go(currentPage + 1)"
         :disabled="currentPage === totalPages"
-        class="px-3 py-1.5 text-sm rounded-lg disabled:text-gray-300 disabled:cursor-not-allowed text-gray-700 hover:bg-gray-100 disabled:hover:bg-transparent transition-colors"
+        class="p-1.5 rounded-md disabled:text-gray-300 disabled:cursor-not-allowed text-gray-700 hover:bg-gray-100 disabled:hover:bg-transparent transition-colors"
         aria-label="Next page"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
       </button>

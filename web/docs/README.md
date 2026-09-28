@@ -2,7 +2,7 @@
 
 Public website frontend for **Desa Sukamaju** (sample Indonesian village).
 
-Vue 3 SPA. Talks to separate REST API at `VITE_API_BASE_URL` (default `http://localhost:8080/api/v1`).
+Vue 3 SPA. Talks to separate REST API at `VITE_API_BASE_URL` (default `http://localhost:8081/api/v1`; a `/api/v1` suffix is appended automatically if omitted).
 
 ## Index
 

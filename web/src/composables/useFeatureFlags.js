@@ -4,7 +4,6 @@ const parseFlag = (value) => value === true || value === 'true'
 
 export const features = ref({
   galleryPublic: parseFlag(import.meta.env.VITE_FEATURE_GALLERY_PUBLIC),
-  desaExtended: parseFlag(import.meta.env.VITE_FEATURE_DESA_EXTENDED),
   beritaSearch: parseFlag(import.meta.env.VITE_FEATURE_BERITA_SEARCH),
   infographicSort: parseFlag(import.meta.env.VITE_FEATURE_INFOGRAPHIC_SORT)
 })

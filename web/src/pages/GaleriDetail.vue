@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div v-if="!flags.galleryPublic" class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center max-w-xl mx-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div v-if="!flags.galleryPublic" class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center max-w-xl mx-auto">
         <Icon name="grid" class="w-12 h-12 mx-auto mb-4 text-emerald-400" />
         <h2 class="text-lg font-bold text-gray-900 mb-2">Galeri sedang dalam pemeliharaan</h2>
         <p class="text-sm text-gray-600 mb-4">Fitur galeri publik belum tersedia pada backend.</p>
@@ -9,9 +9,9 @@
       </div>
 
       <template v-else>
-        <nav class="mb-6 text-sm">
-          <RouterLink to="/galeri" class="text-emerald-600 hover:text-emerald-700 font-medium inline-flex items-center gap-1.5">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <nav class="mb-4 text-sm">
+          <RouterLink to="/galeri" class="text-emerald-600 hover:text-emerald-700 font-medium inline-flex items-center gap-1.5 group">
+            <svg class="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
             Kembali ke Galeri
@@ -29,18 +29,21 @@
       />
 
       <template v-else>
-        <PageHeader :title="folder.name" :subtitle="folder.description || `Album publik ${desaName}`" />
+        <div class="mb-4">
+          <h1 class="text-xl sm:text-2xl font-bold text-gray-900">{{ folder.name }}</h1>
+          <p class="text-xs text-gray-500 mt-0.5">{{ folder.description || `Album publik ${desaName}` }}</p>
+        </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div class="flex items-center gap-4 text-xs text-gray-600">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-4 text-[11px] text-gray-600">
             <span class="inline-flex items-center gap-1.5">
-              <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               {{ imageCount }} foto
             </span>
             <span class="inline-flex items-center gap-1.5">
-              <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
               {{ videoCount }} video
@@ -48,13 +51,13 @@
             <span class="text-gray-400">·</span>
             <span>{{ formatDate(folder.created_at) }}</span>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-1.5">
             <button
               v-for="opt in typeOptions"
               :key="opt.value"
               @click="activeType = opt.value"
               :class="[
-                'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                'px-2.5 py-1 text-[11px] font-medium rounded-lg transition-colors',
                 activeType === opt.value
                   ? 'bg-emerald-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -71,7 +74,7 @@
           description="Album ini belum memiliki media publik pada filter yang dipilih."
         />
 
-        <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <button
             v-for="(item, idx) in filteredMedia"
             :key="item.id"
@@ -188,14 +191,14 @@ import {
 } from '../services/desaService'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
 import EmptyState from '../components/common/EmptyState.vue'
-import PageHeader from '../components/common/PageHeader.vue'
+
 import Icon from '../components/common/Icon.vue'
 import { useDesaInfo } from '../composables/useDesaInfo'
 import { useFeatureFlags } from '../composables/useFeatureFlags'
 
 export default {
   name: 'GaleriDetail',
-  components: { LoadingSpinner, EmptyState, PageHeader, Icon },
+  components: { LoadingSpinner, EmptyState, Icon },
   setup() {
     const route = useRoute()
     const router = useRouter()

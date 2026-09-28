@@ -7,7 +7,14 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 export default defineConfig({
   plugins: [
-    vue(),
+    vue({
+      template: {
+        compilerOptions: {
+          // Metabase embed custom elements — leave them untouched by Vue.
+          isCustomElement: (tag) => tag.startsWith('metabase-'),
+        },
+      },
+    }),
     vueDevTools(),
     createHtmlPlugin({})
   ],

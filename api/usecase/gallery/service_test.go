@@ -31,35 +31,35 @@ const (
 )
 
 type stubRepo struct {
-	mu                 sync.Mutex
-	folders            map[string]*gallery.Folder
-	media              map[string]*gallery.Media
-	folderByID         map[string]*gallery.Folder
-	folderByName       map[string]*gallery.Folder
+	mu                   sync.Mutex
+	folders              map[string]*gallery.Folder
+	media                map[string]*gallery.Media
+	folderByID           map[string]*gallery.Folder
+	folderByName         map[string]*gallery.Folder
 	foldersByFeatureSlug map[string]*gallery.Folder
-	createErr          error
-	updateErr          error
-	deleteErr          error
-	updateVisErr       error
-	createMediaErr     error
-	updateMediaVisErr  error
-	bulkMediaVisErr    error
-	deleteMediaErr     error
-	recomputeErr       error
-	findErr            error
-	findNameErr        error
-	findPublicErr      error
-	publicMediaErr     error
-	listErr            error
+	createErr            error
+	updateErr            error
+	deleteErr            error
+	updateVisErr         error
+	createMediaErr       error
+	updateMediaVisErr    error
+	bulkMediaVisErr      error
+	deleteMediaErr       error
+	recomputeErr         error
+	findErr              error
+	findNameErr          error
+	findPublicErr        error
+	publicMediaErr       error
+	listErr              error
 }
 
 func newStubRepo() *stubRepo {
 	return &stubRepo{
-		folders:             map[string]*gallery.Folder{},
-		media:               map[string]*gallery.Media{},
-		folderByID:          map[string]*gallery.Folder{},
+		folders:              map[string]*gallery.Folder{},
+		media:                map[string]*gallery.Media{},
+		folderByID:           map[string]*gallery.Folder{},
 		foldersByFeatureSlug: map[string]*gallery.Folder{},
-		folderByName: map[string]*gallery.Folder{},
+		folderByName:         map[string]*gallery.Folder{},
 	}
 }
 
@@ -1585,13 +1585,13 @@ func TestSetFolderCover(t *testing.T) {
 
 	// system folder -> immutable
 	sys := &gallery.Folder{
-		ID:        uuid.NewString(),
-		Name:      "system/ppid",
-		IsSystem:  true,
+		ID:          uuid.NewString(),
+		Name:        "system/ppid",
+		IsSystem:    true,
 		FeatureSlug: strptr("ppid"),
-		CreatedBy: "u-1",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedBy:   "u-1",
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 	require.NoError(t, repo.CreateSystemFolder(ctx, sys))
 	_, err = svc.SetFolderCover(ctx, sys.ID, m.ID)
@@ -1661,7 +1661,8 @@ func TestSystemFolderImmutability(t *testing.T) {
 
 func strptr(s string) *string { return &s }
 
-func makeMedia(t *testing.T, repo *stubRepo, folderID, name string) *gallery.Media {	t.Helper()
+func makeMedia(t *testing.T, repo *stubRepo, folderID, name string) *gallery.Media {
+	t.Helper()
 	m := &gallery.Media{
 		ID:               uuid.NewString(),
 		FolderID:         folderID,

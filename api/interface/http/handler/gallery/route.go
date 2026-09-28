@@ -14,10 +14,13 @@ func RegisterRoutes(
 ) {
 	switch scope {
 	case middleware.ScopePublic:
-		// Task 7.4: removed /public/gallery/folders (list/get public folder
-		// info); removed /public/gallery/media/{id}/content|thumbnail and
-		// /public/gallery/media/{id} — every public media stream now goes
-		// through the unified /api/v1/media/{id}/...?jwt= handler.
+		// Public gallery browsing: only folders flagged public that contain
+		// public media are returned, and folder detail exposes public media
+		// only. Binary streams go through the unified
+		// /api/v1/media/{id}/...?jwt= handler, not these routes.
+		r.Get("/public/gallery/folders", h.ListFoldersPublic)
+		r.Get("/public/gallery/folders/{id}", h.GetFolderPublic)
+		r.Get("/public/gallery/media/{id}", h.GetMediaPublic)
 	default:
 		r.Group(func(r chi.Router) {
 			r.Use(mw.RBAC("gallery", "read"))

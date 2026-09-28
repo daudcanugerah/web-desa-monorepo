@@ -665,10 +665,12 @@ func (h *BeritaHandler) DeleteBerita(w http.ResponseWriter, r *http.Request) {
 // @Router       /public/berita/list [get]
 func (h *BeritaHandler) ListBeritaPublic(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Page  int     `in:"query=page;default=1"`
-		Limit int     `in:"query=limit;default=10"`
-		Sort  *string `in:"query=sort"`
-		Order *string `in:"query=order"`
+		Page     int     `in:"query=page;default=1"`
+		Limit    int     `in:"query=limit;default=10"`
+		Sort     *string `in:"query=sort"`
+		Order    *string `in:"query=order"`
+		Q        *string `in:"query=q"`
+		Category *string `in:"query=category"`
 	}
 
 	if err := httpin.DecodeTo(r, &input); err != nil {
@@ -687,11 +689,13 @@ func (h *BeritaHandler) ListBeritaPublic(w http.ResponseWriter, r *http.Request)
 	}
 
 	serviceInput := berita.ListBeritaInput{
-		Page:   input.Page,
-		Limit:  input.Limit,
-		Status: ptrStr(domainberita.StatusActive),
-		Sort:   "created_at",
-		Order:  "desc",
+		Page:     input.Page,
+		Limit:    input.Limit,
+		Query:    input.Q,
+		Category: input.Category,
+		Status:   ptrStr(domainberita.StatusActive),
+		Sort:     "created_at",
+		Order:    "desc",
 	}
 	if input.Sort != nil && *input.Sort != "" {
 		serviceInput.Sort = *input.Sort

@@ -12,6 +12,7 @@ const (
 	FeatureFasilitas = "fasilitas"
 	FeatureUser      = "user"
 	FeaturePPID      = "ppid"
+	FeatureDesa      = "desa"
 )
 
 // SystemFolderSpec describes a system folder to seed.
@@ -32,6 +33,7 @@ func SystemFolderSpecs() []SystemFolderSpec {
 		{Slug: FeatureFasilitas, Name: "system/fasilitas", Description: "Backing folder for fasilitas map images."},
 		{Slug: FeatureUser, Name: "system/user", Description: "Backing folder for user avatar images."},
 		{Slug: FeaturePPID, Name: "system/ppid", Description: "Backing folder for PPID documents and thumbnails."},
+		{Slug: FeatureDesa, Name: "system/desa", Description: "Backing folder for village profile images (kepala desa photo)."},
 	}
 }
 

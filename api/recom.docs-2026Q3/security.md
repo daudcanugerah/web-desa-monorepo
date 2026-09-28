@@ -75,7 +75,7 @@ No auth middleware on this route. Exposes user avatars, PPID documents, banner i
 
 ---
 
-## 7. JWT Refresh Token Rotation — `[STILL OPEN]`
+## 7. JWT Refresh Rotation — `[STILL OPEN]`
 
 **Original claim:** 7-day refresh, no rotation.
 

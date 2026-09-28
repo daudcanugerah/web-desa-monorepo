@@ -1,0 +1,29 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "hive-ai": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Hive",
+      "options": {
+        "baseURL": "https://api-cdn.thehive.ai/api/v3",
+        "apiKey": "{env:HIVE_API_KEY}"
+      },
+      "models": {
+	"zai-org/glm-5.3-flash": {
+          "name": "GLM 5.3 flash",
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          }
+	},
+        "deepseek-ai/deepseek-v4.1-flash": {
+          "name": "Deepseek 4.1 Flash",
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          }
+        }
+      }
+    }
+  }
+}

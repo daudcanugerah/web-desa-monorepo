@@ -1,39 +1,30 @@
 <template>
   <footer class="bg-gray-900 text-gray-300">
-    <div class="border-b border-gray-700">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <p class="text-sm text-gray-400 mb-1">Tetap terhubung dengan Pemerintah {{ brandName }}</p>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+        <div class="md:col-span-5">
+          <div class="flex items-center gap-3 mb-4">
+            <img
+              src="/logo-desa.png"
+              :alt="`Logo ${brandName}`"
+              class="w-14 h-14 object-contain"
+            />
+            <h3 class="text-white font-bold text-xl">{{ brandName }}</h3>
+          </div>
+          <p class="text-sm leading-relaxed text-gray-400">
+            Website resmi Pemerintah {{ brandName }}. Portal informasi dan layanan publik desa berbasis digital.
+          </p>
+          <div class="mt-4">
+            <p class="text-sm text-gray-400 mb-2">Tetap terhubung dengan Pemerintah {{ brandName }}</p>
             <div class="flex items-center gap-3">
               <a v-for="sm in socialMedia" :key="sm.label" :href="sm.href" :aria-label="sm.label" class="w-9 h-9 rounded-full bg-gray-800 hover:bg-emerald-600 flex items-center justify-center transition-colors">
                 <Icon :name="sm.icon" class="w-4 h-4" />
               </a>
             </div>
           </div>
-          <div class="text-xs text-gray-500 md:text-right">
-            <p class="mb-1">Bagian dari Sistem Pemerintahan Republik Indonesia</p>
-            <p>Berkoordinasi dengan Kemendagri · Kemendes PDTT</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div class="md:col-span-1">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 bg-emerald-600 rounded flex items-center justify-center">
-              <span class="text-white font-bold text-sm">{{ brandInitials }}</span>
-            </div>
-            <h3 class="text-white font-bold text-lg">{{ brandName }}</h3>
-          </div>
-          <p class="text-sm leading-relaxed text-gray-400">
-            Website resmi Pemerintah {{ brandName }}. Portal informasi dan layanan publik desa berbasis digital.
-          </p>
         </div>
 
-        <div>
+        <div class="md:col-span-4">
           <h3 class="text-white font-bold text-sm uppercase tracking-wider mb-4">Kontak</h3>
           <ul class="space-y-2 text-sm">
             <li v-if="desaInfo.phone" class="flex items-start gap-2">
@@ -52,7 +43,7 @@
           </ul>
         </div>
 
-        <div>
+        <div class="md:col-span-3">
           <h3 class="text-white font-bold text-sm uppercase tracking-wider mb-4">Tautan Cepat</h3>
           <ul class="space-y-2 text-sm">
             <li><RouterLink to="/profil" class="hover:text-white transition-colors inline-flex items-center gap-1.5"><span class="w-1 h-1 bg-emerald-500 rounded-full"></span>Profil Desa</RouterLink></li>
@@ -61,16 +52,6 @@
             <li><RouterLink to="/peta" class="hover:text-white transition-colors inline-flex items-center gap-1.5"><span class="w-1 h-1 bg-emerald-500 rounded-full"></span>Peta Wilayah</RouterLink></li>
             <li><RouterLink to="/umkm" class="hover:text-white transition-colors inline-flex items-center gap-1.5"><span class="w-1 h-1 bg-emerald-500 rounded-full"></span>UMKM</RouterLink></li>
             <li><RouterLink to="/ppid" class="hover:text-white transition-colors inline-flex items-center gap-1.5"><span class="w-1 h-1 bg-emerald-500 rounded-full"></span>PPID</RouterLink></li>
-          </ul>
-        </div>
-
-        <div>
-          <h3 class="text-white font-bold text-sm uppercase tracking-wider mb-4">Layanan</h3>
-          <ul class="space-y-2 text-sm">
-            <li><a href="/ppid" class="hover:text-white transition-colors inline-flex items-center gap-1.5"><span class="w-1 h-1 bg-emerald-500 rounded-full"></span>Permohonan Dokumen</a></li>
-            <li><a href="#" class="hover:text-white transition-colors inline-flex items-center gap-1.5"><span class="w-1 h-1 bg-emerald-500 rounded-full"></span>Pengaduan Masyarakat</a></li>
-            <li><a href="#" class="hover:text-white transition-colors inline-flex items-center gap-1.5"><span class="w-1 h-1 bg-emerald-500 rounded-full"></span>Sistem Informasi Desa</a></li>
-            <li><a href="#" class="hover:text-white transition-colors inline-flex items-center gap-1.5"><span class="w-1 h-1 bg-emerald-500 rounded-full"></span>Transparansi APBDesa</a></li>
           </ul>
         </div>
       </div>
@@ -99,18 +80,36 @@ export default {
   name: 'Footer',
   components: { Icon },
   setup() {
-    const { desaInfo, initials } = useDesaInfo()
+    const { desaInfo } = useDesaInfo()
     const brandName = computed(() => desaInfo.value?.name || 'Desa')
-    const brandInitials = computed(() => initials(desaInfo.value?.name))
 
-    const socialMedia = [
-      { label: 'Facebook', icon: 'facebook', href: '#' },
-      { label: 'Instagram', icon: 'instagram', href: '#' },
-      { label: 'YouTube', icon: 'youtube', href: '#' }
-    ]
+    const socialLabel = (platform) => {
+      const labels = {
+        facebook: 'Facebook',
+        instagram: 'Instagram',
+        youtube: 'YouTube',
+        tiktok: 'TikTok',
+        twitter: 'X / Twitter',
+        whatsapp: 'WhatsApp'
+      }
+      return labels[platform] || platform
+    }
+
+    const socialMedia = computed(() => {
+      const list = desaInfo.value?.social_media || []
+      const order = ['facebook', 'instagram', 'youtube', 'tiktok', 'twitter', 'whatsapp']
+      return [...list]
+        .filter((link) => link && link.platform && link.url)
+        .sort((a, b) => order.indexOf(a.platform) - order.indexOf(b.platform))
+        .map((link) => ({
+          label: socialLabel(link.platform),
+          icon: link.platform,
+          href: link.url
+        }))
+    })
 
     const currentYear = new Date().getFullYear()
-    return { desaInfo, brandName, brandInitials, socialMedia, currentYear }
+    return { desaInfo, brandName, socialMedia, currentYear }
   }
 }
 </script>

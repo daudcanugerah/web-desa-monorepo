@@ -6,7 +6,7 @@
 
 ## 1. Summary
 
-A simple, admin-managed photo & video gallery for the village website. Admins organise media into named folders; both folders and individual media have independent `public` / `private` visibility. Public access uses a two-level gate: a media item is visible only when its folder is public **and** the media item itself is public.
+A simple, admin-managed photo & video gallery for the village website. Admins organise media into named folders. Public access is folder-level: a media item is visible on the public website whenever its folder is public, regardless of the item's own `is_public` flag.
 
 The system automatically generates thumbnails for uploaded media and uses them to build a cover for each folder. The public website reads eligible public folders + their public media; the admin panel manages everything, including private folders and media.
 
@@ -76,16 +76,14 @@ The system automatically generates thumbnails for uploaded media and uses them t
   - Folder: `folder_id`, `is_public` boolean.
   - Media: `media_id`, `is_public` boolean.
 - **Output**: Updated folder or media entity.
-- **Two-level gate**:
-  - Folder private + media private → hidden.
-  - Folder private + media public → hidden.
-  - Folder public + media private → hidden.
-  - Folder public + media public → visible on `/public/gallery/*`.
+- **Folder-level gate** (public web):
+  - Folder private → folder and all contained media hidden.
+  - Folder public → folder listed and ALL contained media visible on `/public/gallery/*`, regardless of each media item's own `is_public` flag.
 - **Semantics**:
   - New folders and newly uploaded media default to private.
   - Making a folder private immediately hides the folder and all contained media from public endpoints.
-  - Folder visibility changes do not rewrite media visibility flags; making the folder public again restores access only to media already marked public.
-  - A public folder with zero public media remains hidden from public folder listings.
+  - Folder visibility changes do not rewrite media visibility flags; making the folder public again restores access to all its media.
+  - A public folder with zero media still appears in public folder listings (empty album).
   - **No `draft` / `archived` states** in v1 — strict public/private.
 - **Operations**:
   - `PATCH /gallery/folders/{id}/visibility` with `{ is_public: bool }`.

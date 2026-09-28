@@ -25,6 +25,15 @@ func NewProfileRepository(db *sqlx.DB) profileUsecase.Repository {
 	return &ProfileRepository{db: db}
 }
 
+// categoryArg normalizes an optional category pointer: empty strings become
+// NULL so the FK accepts them (and the public page groups them under "Lainnya").
+func categoryArg(category *string) interface{} {
+	if category == nil || *category == "" {
+		return nil
+	}
+	return *category
+}
+
 // Create creates a new profile in the database
 func (r *ProfileRepository) Create(ctx context.Context, p *profile.Profile) error {
 	// Generate UUID if not provided
@@ -33,8 +42,8 @@ func (r *ProfileRepository) Create(ctx context.Context, p *profile.Profile) erro
 	}
 
 	query := `
-		INSERT INTO profile (id, content, section_name, section_endpoint, state, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+		INSERT INTO profile (id, content, section_name, section_endpoint, state, category, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
 	`
 
 	_, err := r.db.ExecContext(ctx, query,
@@ -43,6 +52,7 @@ func (r *ProfileRepository) Create(ctx context.Context, p *profile.Profile) erro
 		p.SectionName,
 		p.SectionEndpoint,
 		p.State,
+		categoryArg(p.Category),
 	)
 	if err != nil {
 		return errtrace.Wrap(fmt.Errorf("failed to create profile: %w", err))
@@ -56,9 +66,11 @@ func (r *ProfileRepository) FindByID(ctx context.Context, id string) (*profile.P
 	var p profile.Profile
 
 	query := `
-		SELECT id, content, section_name, section_endpoint, state, created_at, updated_at
-		FROM profile
-		WHERE id = $1
+		SELECT p.id, p.content, p.section_name, p.section_endpoint, p.state,
+		       p.category, c.name AS category_name, p.created_at, p.updated_at
+		FROM profile p
+		LEFT JOIN profile_categories c ON p.category = c.id
+		WHERE p.id = $1
 	`
 
 	err := r.db.GetContext(ctx, &p, query, id)
@@ -107,33 +119,35 @@ func (r *ProfileRepository) List(ctx context.Context, sectionName *string, state
 
 	// Build data query with filters
 	dataQuery := `
-		SELECT id, content, section_name, section_endpoint, state, created_at, updated_at
-		FROM profile
+		SELECT p.id, p.content, p.section_name, p.section_endpoint, p.state,
+		       p.category, c.name AS category_name, p.created_at, p.updated_at
+		FROM profile p
+		LEFT JOIN profile_categories c ON p.category = c.id
 		WHERE 1=1
 	`
 	var dataArgs []interface{}
 	argIndex = 1
 
 	if sectionName != nil && *sectionName != "" {
-		dataQuery += fmt.Sprintf(` AND section_name = $%d`, argIndex)
+		dataQuery += fmt.Sprintf(` AND p.section_name = $%d`, argIndex)
 		dataArgs = append(dataArgs, *sectionName)
 		argIndex++
 	}
 
 	if state != nil {
-		dataQuery += fmt.Sprintf(` AND state = $%d`, argIndex)
+		dataQuery += fmt.Sprintf(` AND p.state = $%d`, argIndex)
 		dataArgs = append(dataArgs, *state)
 		argIndex++
 	}
 
 	if query != nil && *query != "" {
-		dataQuery += fmt.Sprintf(` AND (section_name ILIKE $%d OR content ILIKE $%d)`, argIndex, argIndex+1)
+		dataQuery += fmt.Sprintf(` AND (p.section_name ILIKE $%d OR p.content ILIKE $%d)`, argIndex, argIndex+1)
 		searchPattern := "%" + *query + "%"
 		dataArgs = append(dataArgs, searchPattern, searchPattern)
 		argIndex += 2
 	}
 
-	dataQuery += ` ORDER BY created_at DESC LIMIT $` + fmt.Sprintf("%d", argIndex) + ` OFFSET $` + fmt.Sprintf("%d", argIndex+1)
+	dataQuery += ` ORDER BY p.created_at DESC LIMIT $` + fmt.Sprintf("%d", argIndex) + ` OFFSET $` + fmt.Sprintf("%d", argIndex+1)
 	dataArgs = append(dataArgs, limit, offset)
 
 	// Query profiles
@@ -150,8 +164,8 @@ func (r *ProfileRepository) List(ctx context.Context, sectionName *string, state
 func (r *ProfileRepository) Update(ctx context.Context, p *profile.Profile) error {
 	query := `
 		UPDATE profile
-		SET content = $1, section_name = $2, section_endpoint = $3, state = $4, updated_at = NOW()
-		WHERE id = $5
+		SET content = $1, section_name = $2, section_endpoint = $3, state = $4, category = $5, updated_at = NOW()
+		WHERE id = $6
 	`
 
 	result, err := r.db.ExecContext(ctx, query,
@@ -159,6 +173,7 @@ func (r *ProfileRepository) Update(ctx context.Context, p *profile.Profile) erro
 		p.SectionName,
 		p.SectionEndpoint,
 		p.State,
+		categoryArg(p.Category),
 		p.ID,
 	)
 	if err != nil {

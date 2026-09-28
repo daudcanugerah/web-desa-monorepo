@@ -131,7 +131,7 @@ func (r *GalleryRepository) GetPublicFolderByID(ctx context.Context, id string) 
 	err := r.db.GetContext(ctx, &row, fmt.Sprintf(`
 		SELECT %s, COUNT(m.id) AS media_count
 		FROM gallery_folders f
-		JOIN gallery_media m ON m.folder_id = f.id AND m.is_public = TRUE
+		LEFT JOIN gallery_media m ON m.folder_id = f.id AND m.is_public = TRUE
 		WHERE f.id = $1 AND f.is_public = TRUE
 		GROUP BY f.id, f.name, f.description, f.is_public, f.cover_media_id, f.cover_manual, f.created_by, f.created_at, f.updated_at
 	`, galleryFolderColumns), id)
@@ -217,32 +217,25 @@ func (r *GalleryRepository) FindSystemFolderOwner(ctx context.Context) (string, 
 
 func (r *GalleryRepository) ListFolders(ctx context.Context, q galleryUsecase.FolderListInput) ([]domaingallery.Folder, int, error) {
 	where, args := folderListWhere(q, false)
-	return r.listFolders(ctx, where, args, false, pageOffset(q.Page, q.Limit), q.Limit)
+	return r.listFolders(ctx, where, args, pageOffset(q.Page, q.Limit), q.Limit)
 }
 
 func (r *GalleryRepository) ListFoldersWithPublicMedia(ctx context.Context, q galleryUsecase.FolderListInput) ([]domaingallery.Folder, int, error) {
+	// Folder-level gate: a public folder exposes all its media, so the public
+	// listing filters on folder visibility only and counts every media item.
 	where, args := folderListWhere(q, true)
-	return r.listFolders(ctx, where, args, true, pageOffset(q.Page, q.Limit), q.Limit)
+	return r.listFolders(ctx, where, args, pageOffset(q.Page, q.Limit), q.Limit)
 }
 
-func (r *GalleryRepository) listFolders(ctx context.Context, where string, args []interface{}, publicMediaOnly bool, offset, limit int) ([]domaingallery.Folder, int, error) {
+func (r *GalleryRepository) listFolders(ctx context.Context, where string, args []interface{}, offset, limit int) ([]domaingallery.Folder, int, error) {
 	var total int
-	countWhere := where
-	if publicMediaOnly {
-		countWhere += ` AND EXISTS (
-			SELECT 1
-			FROM gallery_media public_media
-			WHERE public_media.folder_id = f.id AND public_media.is_public = TRUE
-		)`
-	}
-	if err := r.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM gallery_folders f `+countWhere, args...); err != nil {
+	// A public folder with zero media still appears in the public listing
+	// (media_count 0); no EXISTS filter is applied.
+	if err := r.db.GetContext(ctx, &total, `SELECT COUNT(*) FROM gallery_folders f `+where, args...); err != nil {
 		return nil, 0, fmt.Errorf("gallery folder count: %w", err)
 	}
 
 	join := "LEFT JOIN gallery_media m ON m.folder_id = f.id"
-	if publicMediaOnly {
-		join = "JOIN gallery_media m ON m.folder_id = f.id AND m.is_public = TRUE"
-	}
 
 	listArgs := append([]interface{}{}, args...)
 	listArgs = append(listArgs, limit, offset)
@@ -300,10 +293,8 @@ func (r *GalleryRepository) RecomputeFolderCover(ctx context.Context, folderID s
 	err = tx.GetContext(ctx, &candidate, `
 		SELECT m.id
 		FROM gallery_media m
-		JOIN gallery_folders f ON f.id = m.folder_id
 		WHERE m.folder_id = $1
 		  AND m.thumbnail_url IS NOT NULL
-		  AND (f.is_public = FALSE OR m.is_public = TRUE)
 		ORDER BY CASE WHEN m.media_type = 'image' THEN 0 ELSE 1 END, m.created_at DESC, m.id DESC
 		LIMIT 1
 	`, folderID)
